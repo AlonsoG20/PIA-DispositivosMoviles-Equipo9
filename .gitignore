@@ -1,5 +1,12 @@
-#log
+# Android Studio / IntelliJ
+.idea/
+.gradle/
+build/
+local.properties
+
+# Log files
 *.log
 *.tmp
 
+# OS specific
 .DS_Store
