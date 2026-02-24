@@ -1,38 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <!-- Barra superior  -->
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="100dp"
-        android:background="@color/teal_primary"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
+        android:layout_height="wrap_content"
+        android:background="#789D9C"
         android:paddingStart="16dp"
-        android:paddingEnd="16dp">
+        android:paddingTop="20dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="20dp">
 
         <TextView
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:text="Logo"
-            android:textSize="10sp"
+            android:id="@+id/logo"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="@drawable/circle_background_light"
             android:gravity="center"
-            android:background="@color/white"
-            android:textColor="@color/teal_primary"/>
+            android:text="Logo"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
         <TextView
+            android:id="@+id/header_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
             android:text="Geofencing"
-            android:textColor="@color/white"
-            android:textSize="20sp"
+            android:textColor="#000000"
+            android:textSize="22sp"
             android:textStyle="bold"
-            android:layout_marginStart="12dp"/>
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toEndOf="@id/logo"
+            app:layout_constraintTop_toTopOf="parent" />
 
-    </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <!-- ScrollView solo contiene el formulario -->
     <ScrollView
@@ -43,38 +51,38 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
             android:orientation="vertical"
-            android:padding="24dp"
-            android:gravity="center_horizontal">
+            android:padding="24dp">
 
-            <!-- Foto de perfil circular -->
             <ImageView
                 android:id="@+id/ivProfilePlaceholder"
                 android:layout_width="100dp"
                 android:layout_height="100dp"
                 android:layout_marginTop="40dp"
-                android:background="@drawable/circle_background"
-                android:src="@drawable/ic_person"
-                android:contentDescription="Foto de perfil"/>
+                android:background="@drawable/circle_background_light"
+                android:contentDescription="Foto de perfil"
+                android:padding="20dp"
+                android:src="@drawable/ic_person" />
 
             <!-- Titulo -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
                 android:text="Iniciar Sesión"
-                android:textSize="22sp"
-                android:textStyle="bold"
                 android:textColor="@color/black"
-                android:layout_marginTop="20dp"/>
+                android:textSize="22sp"
+                android:textStyle="bold" />
 
             <!-- Label Correo -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
                 android:text="Correo electronico"
-                android:textSize="14sp"
                 android:textColor="@color/black"
-                android:layout_marginTop="24dp"/>
+                android:textSize="14sp" />
 
             <!-- Campo Correo -->
             <EditText
@@ -83,19 +91,19 @@
                 android:layout_height="48dp"
                 android:layout_marginTop="6dp"
                 android:background="@drawable/input_background"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
+                android:hint="ejemplo@correo.com"
                 android:inputType="textEmailAddress"
-                android:hint="ejemplo@correo.com"/>
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp" />
 
             <!-- Label Contraseña -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
                 android:text="Contraseña"
-                android:textSize="14sp"
                 android:textColor="@color/black"
-                android:layout_marginTop="16dp"/>
+                android:textSize="14sp" />
 
             <!-- Campo Contraseña -->
             <EditText
@@ -104,10 +112,11 @@
                 android:layout_height="48dp"
                 android:layout_marginTop="6dp"
                 android:background="@drawable/input_background"
+                android:hint="••••••••"
+                android:inputType="textPassword"
                 android:paddingStart="12dp"
                 android:paddingEnd="12dp"
-                android:inputType="textPassword"
-                android:hint="••••••••"/>
+                android:textColorHint="#959595" />
 
             <!-- Botón Iniciar Sesión -->
             <Button
@@ -115,36 +124,36 @@
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
                 android:layout_marginTop="32dp"
-                android:text="Iniciar Sesión"
-                android:textColor="@color/white"
-                android:textSize="16sp"
                 android:background="@drawable/button_background"
                 android:backgroundTint="@null"
-                android:elevation="2dp"/>
+                android:elevation="2dp"
+                android:text="Iniciar Sesión"
+                android:textColor="@color/white"
+                android:textSize="20sp" />
 
             <!-- Link Registro -->
             <TextView
                 android:id="@+id/tvGoToRegister"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Registrarte aquí"
-                android:textColor="@color/teal_primary"
-                android:textSize="14sp"
+                android:layout_height="48dp"
                 android:layout_marginTop="16dp"
                 android:clickable="true"
-                android:focusable="true"/>
+                android:focusable="true"
+                android:text="Registrarte aquí"
+                android:textColor="#789D9C"
+                android:textSize="20sp" />
 
             <!-- Mensaje de error -->
             <TextView
                 android:id="@+id/tvError"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
                 android:text=""
                 android:textColor="#D32F2F"
                 android:textSize="13sp"
-                android:layout_marginTop="8dp"
-                android:gravity="center"
-                android:visibility="gone"/>
+                android:visibility="gone" />
 
             <!-- Indicador de carga -->
             <ProgressBar
@@ -152,7 +161,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:visibility="gone"/>
+                android:visibility="gone" />
 
         </LinearLayout>
     </ScrollView>
