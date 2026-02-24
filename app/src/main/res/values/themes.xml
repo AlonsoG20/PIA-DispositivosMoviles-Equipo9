@@ -6,4 +6,8 @@
     </style>
 
     <style name="Theme.Geofence" parent="Base.Theme.Geofence" />
+
+    <style name="CircleAppearance">
+        <item name="cornerSize">50%</item>
+    </style>
 </resources>
