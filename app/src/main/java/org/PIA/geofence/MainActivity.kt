@@ -2,18 +2,22 @@ package org.PIA.geofence
 
 import android.os.Bundle
 import android.widget.LinearLayout
-import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import org.PIA.geofence.ui.cuenta.CuentaFragment
+import org.PIA.geofence.ui.historial.HistorialFragment
+
 
 class MainActivity : AppCompatActivity() {
 
+    private lateinit var navCuenta: LinearLayout
+    private lateinit var navRutas: LinearLayout
+    private lateinit var navHistorial: LinearLayout
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContentView(R.layout.activity_main)
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
@@ -22,17 +26,27 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
+        val navbar = findViewById<androidx.constraintlayout.widget.ConstraintLayout>(R.id.navbar)
+
+// Luego buscamos los tabs dentro del navbar
+        navCuenta = navbar.findViewById(R.id.nav_cuenta)
+        navRutas = navbar.findViewById(R.id.nav_rutas)
+        navHistorial = navbar.findViewById(R.id.nav_historial)
+
+
+        // Cargamos CuentaFragment por defecto
         if (savedInstanceState == null) {
             loadFragment(CuentaFragment())
         }
 
-        val navCuenta = findViewById<LinearLayout>(R.id.nav_cuenta)
-        val navControl = findViewById<LinearLayout>(R.id.nav_control)
-        val navRegistros = findViewById<LinearLayout>(R.id.nav_registros)
-
         navCuenta.setOnClickListener {
             loadFragment(CuentaFragment())
         }
+
+        navHistorial.setOnClickListener {
+            loadFragment(HistorialFragment())
+        }
+
     }
 
     private fun loadFragment(fragment: Fragment) {
