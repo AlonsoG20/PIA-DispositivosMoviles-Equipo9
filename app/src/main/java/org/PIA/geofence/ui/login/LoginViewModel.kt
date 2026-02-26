@@ -35,11 +35,13 @@ class LoginViewModel : ViewModel() {
         viewModelScope.launch {
             delay(1500) // Simulamos tiempo de espera de red
 
-            if (email.contains("test")) {
+            // mientras no este la base de datos
+            _loginState.value = LoginState.Success
+            /*if (email.contains("test")) {
                 _loginState.value = LoginState.Success
             } else {
                 _loginState.value = LoginState.Error("Correo o contraseña incorrectos")
-            }
+            }*/
         }
     }
 }
