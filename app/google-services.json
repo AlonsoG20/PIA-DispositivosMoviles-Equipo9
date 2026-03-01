@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "284618609911",
+    "project_id": "geofencing-e383c",
+    "storage_bucket": "geofencing-e383c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:284618609911:android:e347aee08159e1c04a6ff2",
+        "android_client_info": {
+          "package_name": "org.PIA.geofence"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDyInCn5HcShJu-icJ9OUJwazz-Qum-YsM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
