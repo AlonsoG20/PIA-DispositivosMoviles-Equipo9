@@ -7,7 +7,9 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.google.firebase.auth.FirebaseAuth
 import org.PIA.geofence.MainActivity
@@ -28,7 +30,8 @@ class LoginActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         val currentUser = auth.currentUser
-        if (currentUser != null) {
+        // Solo redirigir si existe usuario Y está verificado
+        if (currentUser != null && currentUser.isEmailVerified) {
             goToMainActivity()
         }
     }
@@ -72,9 +75,27 @@ class LoginActivity : AppCompatActivity() {
                     btnLogin.isEnabled = true
                     tvError.text = state.message
                     tvError.visibility = View.VISIBLE
+                    
+                    if (state.canResend) {
+                        showResendDialog()
+                    }
                 }
             }
         }
+    }
+
+    private fun showResendDialog() {
+        val email = etEmail.text.toString().trim()
+        val password = etPassword.text.toString().trim()
+        
+        AlertDialog.Builder(this)
+            .setTitle("Correo no verificado")
+            .setMessage("¿Deseas que te enviemos un nuevo enlace de verificación?")
+            .setPositiveButton("Reenviar") { _, _ ->
+                viewModel.resendVerificationEmail(email, password)
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
     }
 
     private fun goToMainActivity() {

@@ -10,7 +10,6 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import org.PIA.geofence.MainActivity
 import org.PIA.geofence.R
 
 class RegisterActivity : AppCompatActivity() {
@@ -65,9 +64,9 @@ class RegisterActivity : AppCompatActivity() {
                 }
                 is RegisterState.Success -> {
                     progressBar.visibility = View.GONE
-                    Toast.makeText(this, "Registro exitoso", Toast.LENGTH_SHORT).show()
-                    startActivity(Intent(this, MainActivity::class.java))
-                    finishAffinity() // Cierra el login también
+                    // CAMBIO AQUÍ: Informar al usuario y cerrar la actividad para volver al login
+                    Toast.makeText(this, "Registro exitoso. Por favor verifica tu correo electrónico.", Toast.LENGTH_LONG).show()
+                    finish() // Regresa a la actividad anterior (LoginActivity)
                 }
                 is RegisterState.Error -> {
                     progressBar.visibility = View.GONE

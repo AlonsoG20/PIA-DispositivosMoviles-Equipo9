@@ -28,13 +28,11 @@ class MainActivity : AppCompatActivity() {
 
         val navbar = findViewById<androidx.constraintlayout.widget.ConstraintLayout>(R.id.navbar)
 
-// Luego buscamos los tabs dentro del navbar
         navCuenta = navbar.findViewById(R.id.nav_cuenta)
         navRutas = navbar.findViewById(R.id.nav_rutas)
         navHistorial = navbar.findViewById(R.id.nav_historial)
 
 
-        // Cargamos CuentaFragment por defecto
         if (savedInstanceState == null) {
             loadFragment(CuentaFragment())
         }

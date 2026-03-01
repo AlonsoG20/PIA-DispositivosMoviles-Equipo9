@@ -41,27 +41,35 @@ class RegisterViewModel : ViewModel() {
         auth.createUserWithEmailAndPassword(email, password)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    val userId = auth.currentUser?.uid
-                    if (userId != null) {
-                        // Crear perfil completo en Firestore en la colección "usuarios"
-                        val user = hashMapOf(
-                            "nombre" to nombre,
-                            "apellidos" to apellidos,
-                            "email" to email,
-                            "rol" to "sinRol",
-                            "activo" to true,
-                            "createdAt" to System.currentTimeMillis()
-                        )
-                        db.collection("usuarios").document(userId).set(user)
-                            .addOnSuccessListener {
-                                _registerState.value = RegisterState.Success
+                    val firebaseUser = auth.currentUser
+                    
+                    // 1. Enviar correo de verificación
+                    firebaseUser?.sendEmailVerification()
+                        ?.addOnCompleteListener { verificationTask ->
+                            if (verificationTask.isSuccessful) {
+                                val userId = firebaseUser.uid
+                                // 2. Guardar datos en Firestore
+                                val user = hashMapOf(
+                                    "nombre" to nombre,
+                                    "apellidos" to apellidos,
+                                    "email" to email,
+                                    "rol" to "sinRol",
+                                    "activo" to true,
+                                    "createdAt" to System.currentTimeMillis()
+                                )
+                                
+                                db.collection("usuarios").document(userId).set(user)
+                                    .addOnSuccessListener {
+                                        auth.signOut()
+                                        _registerState.value = RegisterState.Success
+                                    }
+                                    .addOnFailureListener { e ->
+                                        _registerState.value = RegisterState.Error("Usuario creado, pero hubo un error en Firestore: ${e.localizedMessage}")
+                                    }
+                            } else {
+                                _registerState.value = RegisterState.Error("Error al enviar el correo de verificación: ${verificationTask.exception?.localizedMessage}")
                             }
-                            .addOnFailureListener { e ->
-                                _registerState.value = RegisterState.Error("Usuario creado, pero hubo un error en Firestore: ${e.localizedMessage}")
-                            }
-                    } else {
-                        _registerState.value = RegisterState.Success
-                    }
+                        }
                 } else {
                     val errorMessage = task.exception?.localizedMessage ?: "Error al registrarse"
                     _registerState.value = RegisterState.Error(errorMessage)
