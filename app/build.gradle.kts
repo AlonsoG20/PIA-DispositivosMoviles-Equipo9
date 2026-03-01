@@ -1,20 +1,17 @@
 plugins {
     alias(libs.plugins.android.application)
-
-    // Add the Google services Gradle plugin
+    id("org.jetbrains.kotlin.android")
     id("com.google.gms.google-services")
 }
 
 android {
     namespace = "org.PIA.geofence"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "org.PIA.geofence"
         minSdk = 24
-        targetSdk = 36
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -34,8 +31,9 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-
-
+    kotlinOptions {
+        jvmTarget = "11"
+    }
 }
 
 dependencies {
@@ -44,15 +42,18 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
+    implementation(libs.firebase.firestore.ktx)
+    
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.androidx.lifecycle.livedata.ktx)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.0")
-    // Import the Firebase BoM
-    implementation(platform("com.google.firebase:firebase-bom:34.10.0"))
-
-    /*TODO: Add the dependencies for Firebase products you want to use*/
-    // When using the BoM, don't specify versions in Firebase dependencies
+    
+    // Firebase BoM
+    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-analytics")
-
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-firestore")
 }

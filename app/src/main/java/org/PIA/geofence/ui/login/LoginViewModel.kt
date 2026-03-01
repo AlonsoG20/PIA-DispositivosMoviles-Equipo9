@@ -4,12 +4,14 @@ import android.util.Patterns
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 // Esta clase maneja la lógica del login, separada de la pantalla
 class LoginViewModel : ViewModel() {
+
+    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
+    private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
 
     // Estado del login que la pantalla puede observar
     private val _loginState = MutableLiveData<LoginState>()
@@ -31,18 +33,42 @@ class LoginViewModel : ViewModel() {
         // Mostramos loading mientras esperamos
         _loginState.value = LoginState.Loading
 
-        // TODO: Reemplazar con llamada a Firebase Auth
-        viewModelScope.launch {
-            delay(1500) // Simulamos tiempo de espera de red
+        auth.signInWithEmailAndPassword(email, password)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val userId = auth.currentUser?.uid
+                    if (userId != null) {
+                        checkUserStatus(userId)
+                    } else {
+                        _loginState.value = LoginState.Error("Error al obtener ID de usuario")
+                    }
+                } else {
+                    val errorMessage = task.exception?.localizedMessage ?: "Error al iniciar sesión"
+                    _loginState.value = LoginState.Error(errorMessage)
+                }
+            }
+    }
 
-            // mientras no este la base de datos
-            _loginState.value = LoginState.Success
-            /*if (email.contains("test")) {
-                _loginState.value = LoginState.Success
-            } else {
-                _loginState.value = LoginState.Error("Correo o contraseña incorrectos")
-            }*/
-        }
+    private fun checkUserStatus(userId: String) {
+        db.collection("usuarios").document(userId).get()
+            .addOnSuccessListener { document ->
+                if (document.exists()) {
+                    val activo = document.getBoolean("activo") ?: false
+                    if (activo) {
+                        _loginState.value = LoginState.Success
+                    } else {
+                        auth.signOut()
+                        _loginState.value = LoginState.Error("Tu cuenta está desactivada. Contacta al administrador.")
+                    }
+                } else {
+                    auth.signOut()
+                    _loginState.value = LoginState.Error("No se encontró información de tu cuenta. Es posible que haya sido eliminada.")
+                }
+            }
+            .addOnFailureListener { e ->
+                auth.signOut()
+                _loginState.value = LoginState.Error("Error al verificar estatus: ${e.localizedMessage}")
+            }
     }
 }
 
