@@ -3,6 +3,12 @@
 .gradle/
 build/
 local.properties
+/captures
+.externalNativeBuild
+.cxx
+*.iml
+*.ipr
+*.iws
 
 # Log files
 *.log
@@ -10,3 +16,5 @@ local.properties
 
 # OS specific
 .DS_Store
+.AppleDouble
+.LSOverride
