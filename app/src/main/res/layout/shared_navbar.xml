@@ -1,39 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="80dp"
     android:background="@android:color/white"
-    android:elevation="8dp">
+    android:elevation="8dp"
+    android:paddingTop="6dp">
 
     <!-- Item Cuenta (Seleccionado) -->
     <LinearLayout
         android:id="@+id/nav_cuenta"
         android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:gravity="center"
-        android:orientation="vertical"
         android:clickable="true"
         android:focusable="true"
+        android:gravity="center"
+        android:orientation="vertical"
         app:layout_constraintEnd_toStartOf="@+id/nav_rutas"
         app:layout_constraintHorizontal_weight="1"
-        app:layout_constraintStart_toStartOf="parent">
+        app:layout_constraintStart_toStartOf="parent"
+        tools:layout_editor_absoluteY="6dp">
 
         <ImageView
             android:layout_width="56dp"
             android:layout_height="32dp"
             android:background="@drawable/navbar_pill_background"
-            android:padding="4dp"
+            android:padding="2dp"
             android:src="@drawable/ic_person"
             app:tint="@android:color/black" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
             android:text="Cuenta"
             android:textColor="@android:color/black"
-            android:textSize="12sp"
+            android:textSize="14sp"
             android:textStyle="bold" />
     </LinearLayout>
 
@@ -42,27 +44,26 @@
         android:id="@+id/nav_rutas"
         android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:gravity="center"
-        android:orientation="vertical"
         android:clickable="true"
         android:focusable="true"
+        android:gravity="center"
+        android:orientation="vertical"
         app:layout_constraintEnd_toStartOf="@+id/nav_historial"
         app:layout_constraintHorizontal_weight="1"
         app:layout_constraintStart_toEndOf="@+id/nav_cuenta">
 
         <ImageView
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="56dp"
+            android:layout_height="32dp"
             android:src="@drawable/ic_control"
             app:tint="@android:color/darker_gray" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
             android:text="Rutas"
             android:textColor="@android:color/darker_gray"
-            android:textSize="12sp" />
+            android:textSize="14sp" />
     </LinearLayout>
 
     <!-- Item Registros -->
@@ -70,10 +71,10 @@
         android:id="@+id/nav_historial"
         android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:gravity="center"
-        android:orientation="vertical"
         android:clickable="true"
         android:focusable="true"
+        android:gravity="center"
+        android:orientation="vertical"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_weight="1"
         app:layout_constraintStart_toEndOf="@+id/nav_rutas">
@@ -83,26 +84,25 @@
             android:layout_height="wrap_content">
 
             <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
+                android:layout_width="56dp"
+                android:layout_height="32dp"
                 android:src="@drawable/ic_registros"
                 app:tint="@android:color/darker_gray" />
 
             <!-- Punto de notificación rojo -->
-            <View
-                android:layout_width="6dp"
-                android:layout_height="6dp"
-                android:layout_gravity="top|end"
-                android:background="@android:color/holo_red_dark" />
+            <!--  <View
+                 android:layout_width="6dp"
+                 android:layout_height="6dp"
+                 android:layout_gravity="top|end"
+                 android:background="@android:color/holo_red_dark" /> -->
         </FrameLayout>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
             android:text="Historial"
             android:textColor="@android:color/darker_gray"
-            android:textSize="12sp" />
+            android:textSize="14sp" />
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
