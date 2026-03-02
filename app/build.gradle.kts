@@ -34,6 +34,10 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+    defaultConfig {
+        // ...
+        manifestPlaceholders["MAPS_API_KEY"] = "AIzaSyBvnwDSJQDFdkkJulHT1BctccrsRiTnbmA"
+    }
 }
 
 dependencies {
@@ -56,4 +60,8 @@ dependencies {
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
+    // Google Maps
+    implementation("com.google.android.gms:play-services-maps:18.2.0")
+    // Geofencing
+    implementation("com.google.android.gms:play-services-location:21.2.0")
 }

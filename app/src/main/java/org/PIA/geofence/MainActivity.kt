@@ -8,6 +8,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import org.PIA.geofence.ui.cuenta.CuentaFragment
 import org.PIA.geofence.ui.historial.HistorialFragment
+import org.PIA.geofence.ui.rutas.RutasFragment
 
 
 class MainActivity : AppCompatActivity() {
@@ -43,6 +44,9 @@ class MainActivity : AppCompatActivity() {
 
         navHistorial.setOnClickListener {
             loadFragment(HistorialFragment())
+        }
+        navRutas.setOnClickListener {
+            loadFragment(RutasFragment())
         }
 
     }
