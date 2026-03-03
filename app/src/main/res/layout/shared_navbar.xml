@@ -59,7 +59,7 @@
         <ImageView
             android:layout_width="32dp"
             android:layout_height="32dp"
-            android:src="@drawable/ic_control"
+            android:src="@drawable/ic_rutas"
             app:tint="@color/nav_text_color_selector" />
 
         <TextView
