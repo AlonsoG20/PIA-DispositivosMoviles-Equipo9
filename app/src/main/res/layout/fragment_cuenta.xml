@@ -31,10 +31,10 @@
                 android:id="@+id/tvUserRole"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Rol: Chofer"
-                android:textSize="14sp"
+                android:layout_marginTop="4dp"
+                android:text="Rol: Cargando..."
                 android:textColor="#666"
-                android:layout_marginTop="4dp"/>
+                android:textSize="14sp" />
 
             <TextView
                 android:id="@+id/tvAssignedUnit"
@@ -65,9 +65,9 @@
                 android:id="@+id/tvCompletedRoutes"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Total de rutas realizadas: ..."
-                android:textSize="14sp"
-                android:textColor="#000"/>
+                android:text="Total de rutas realizadas: cargando..."
+                android:textColor="#000"
+                android:textSize="14sp" />
 
         </LinearLayout>
 

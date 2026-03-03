@@ -14,6 +14,9 @@ import org.PIA.geofence.ui.login.SinRolFragment
 import org.PIA.geofence.ui.cuenta.CuentaFragment
 import org.PIA.geofence.ui.historial.HistorialFragment
 import org.PIA.geofence.ui.rutas.RutasFragment
+// Estos fragments deben ser creados
+import org.PIA.geofence.ui.gestion.GestionFragment
+import org.PIA.geofence.ui.reportes.ReportesFragment
 
 
 class MainActivity : AppCompatActivity() {
@@ -21,6 +24,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var navCuenta: LinearLayout
     private lateinit var navRutas: LinearLayout
     private lateinit var navHistorial: LinearLayout
+    private lateinit var navGestion: LinearLayout
+    private lateinit var navReportes: LinearLayout
     private lateinit var navbar: ConstraintLayout
 
     private val auth = FirebaseAuth.getInstance()
@@ -41,19 +46,16 @@ class MainActivity : AppCompatActivity() {
         navCuenta = navbar.findViewById(R.id.nav_cuenta)
         navRutas = navbar.findViewById(R.id.nav_rutas)
         navHistorial = navbar.findViewById(R.id.nav_historial)
+        navGestion = navbar.findViewById(R.id.nav_gestion)
+        navReportes = navbar.findViewById(R.id.nav_reportes)
 
         checkUserRole()
 
-        navCuenta.setOnClickListener {
-            loadFragment(CuentaFragment(), it.id)
-        }
-
-        navHistorial.setOnClickListener {
-            loadFragment(HistorialFragment(), it.id)
-        }
-        navRutas.setOnClickListener {
-            loadFragment(RutasFragment(), it.id)
-        }
+        navCuenta.setOnClickListener { loadFragment(CuentaFragment(), it.id) }
+        navRutas.setOnClickListener { loadFragment(RutasFragment(), it.id) }
+        navHistorial.setOnClickListener { loadFragment(HistorialFragment(), it.id) }
+        navGestion.setOnClickListener { loadFragment(GestionFragment(), it.id) }
+        navReportes.setOnClickListener { loadFragment(ReportesFragment(), it.id) }
     }
 
     private fun checkUserRole() {
@@ -63,20 +65,44 @@ class MainActivity : AppCompatActivity() {
             .addOnSuccessListener { document ->
                 if (document.exists()) {
                     val rol = document.getString("rol") ?: "sinRol"
-                    if (rol == "sinRol") {
-                        navbar.visibility = View.GONE
-                        loadFragment(SinRolFragment())
-                    } else {
-                        navbar.visibility = View.VISIBLE
-                        // Por defecto cargamos Cuenta al iniciar con rol
-                        loadFragment(CuentaFragment(), R.id.nav_cuenta)
-                    }
+                    setupUIByRole(rol)
                 }
             }
             .addOnFailureListener {
                 navbar.visibility = View.GONE
                 loadFragment(SinRolFragment())
             }
+    }
+
+    private fun setupUIByRole(rol: String) {
+        navbar.visibility = View.VISIBLE
+        
+        when (rol) {
+            "gerente" -> {
+                navCuenta.visibility = View.VISIBLE
+                navGestion.visibility = View.VISIBLE
+                navReportes.visibility = View.VISIBLE
+                
+                navRutas.visibility = View.GONE
+                navHistorial.visibility = View.GONE
+                
+                loadFragment(GestionFragment(), R.id.nav_gestion)
+            }
+            "chofer", "despachador" -> {
+                navCuenta.visibility = View.VISIBLE
+                navRutas.visibility = View.VISIBLE
+                navHistorial.visibility = View.VISIBLE
+                
+                navGestion.visibility = View.GONE
+                navReportes.visibility = View.GONE
+                
+                loadFragment(RutasFragment(), R.id.nav_rutas)
+            }
+            else -> {
+                navbar.visibility = View.GONE
+                loadFragment(SinRolFragment())
+            }
+        }
     }
 
     private fun loadFragment(fragment: Fragment, selectedId: Int = -1) {
@@ -93,5 +119,7 @@ class MainActivity : AppCompatActivity() {
         navCuenta.isSelected = (selectedId == R.id.nav_cuenta)
         navRutas.isSelected = (selectedId == R.id.nav_rutas)
         navHistorial.isSelected = (selectedId == R.id.nav_historial)
+        navGestion.isSelected = (selectedId == R.id.nav_gestion)
+        navReportes.isSelected = (selectedId == R.id.nav_reportes)
     }
 }

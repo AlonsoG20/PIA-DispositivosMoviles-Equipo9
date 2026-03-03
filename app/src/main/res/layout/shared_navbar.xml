@@ -8,7 +8,7 @@
     android:elevation="8dp"
     android:padding="8dp">
 
-    <!-- Item Cuenta -->
+    <!-- 1. CUENTA (Siempre al principio) -->
     <LinearLayout
         android:id="@+id/nav_cuenta"
         android:layout_width="0dp"
@@ -19,13 +19,14 @@
         android:gravity="center"
         android:orientation="vertical"
         android:padding="4dp"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/nav_rutas"
-        app:layout_constraintHorizontal_weight="1"
+        app:layout_constraintHorizontal_chainStyle="spread"
         app:layout_constraintStart_toStartOf="parent"
-        tools:layout_editor_absoluteY="6dp">
+        app:layout_constraintTop_toTopOf="parent">
 
         <ImageView
-            android:layout_width="56dp"
+            android:layout_width="32dp"
             android:layout_height="32dp"
             android:src="@drawable/ic_person"
             app:tint="@color/nav_text_color_selector" />
@@ -35,11 +36,11 @@
             android:layout_height="wrap_content"
             android:text="Cuenta"
             android:textColor="@color/nav_text_color_selector"
-            android:textSize="14sp"
+            android:textSize="12sp"
             android:textStyle="bold" />
     </LinearLayout>
 
-    <!-- Item Control -->
+    <!-- 2. RUTAS (Operativo) -->
     <LinearLayout
         android:id="@+id/nav_rutas"
         android:layout_width="0dp"
@@ -50,13 +51,13 @@
         android:gravity="center"
         android:orientation="vertical"
         android:padding="4dp"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/nav_historial"
-        app:layout_constraintHorizontal_weight="1"
         app:layout_constraintStart_toEndOf="@+id/nav_cuenta"
-        tools:layout_editor_absoluteY="8dp">
+        app:layout_constraintTop_toTopOf="parent">
 
         <ImageView
-            android:layout_width="56dp"
+            android:layout_width="32dp"
             android:layout_height="32dp"
             android:src="@drawable/ic_control"
             app:tint="@color/nav_text_color_selector" />
@@ -66,10 +67,10 @@
             android:layout_height="wrap_content"
             android:text="Rutas"
             android:textColor="@color/nav_text_color_selector"
-            android:textSize="14sp" />
+            android:textSize="12sp" />
     </LinearLayout>
 
-    <!-- Item Registros -->
+    <!-- 3. HISTORIAL (Operativo) -->
     <LinearLayout
         android:id="@+id/nav_historial"
         android:layout_width="0dp"
@@ -80,35 +81,85 @@
         android:gravity="center"
         android:orientation="vertical"
         android:padding="4dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_weight="1"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/nav_gestion"
         app:layout_constraintStart_toEndOf="@+id/nav_rutas"
-        tools:layout_editor_absoluteY="8dp">
+        app:layout_constraintTop_toTopOf="parent">
 
-        <FrameLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content">
-
-            <ImageView
-                android:layout_width="56dp"
-                android:layout_height="32dp"
-                android:src="@drawable/ic_registros"
-                app:tint="@color/nav_text_color_selector" />
-
-            <!-- Punto de notificación rojo -->
-            <!--  <View
-                 android:layout_width="6dp"
-                 android:layout_height="6dp"
-                 android:layout_gravity="top|end"
-                 android:background="@android:color/holo_red_dark" /> -->
-        </FrameLayout>
+        <ImageView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_registros"
+            app:tint="@color/nav_text_color_selector" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Historial"
             android:textColor="@color/nav_text_color_selector"
-            android:textSize="14sp" />
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- 4. GESTIÓN (Gerente) -->
+    <LinearLayout
+        android:id="@+id/nav_gestion"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:background="@drawable/nav_pill_background_selector"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="4dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/nav_reportes"
+        app:layout_constraintStart_toEndOf="@+id/nav_historial"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_gestion"
+            app:tint="@color/nav_text_color_selector" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Gestión"
+            android:textColor="@color/nav_text_color_selector"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- 5. REPORTES (Gerente) -->
+    <LinearLayout
+        android:id="@+id/nav_reportes"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:background="@drawable/nav_pill_background_selector"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="4dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/nav_gestion"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_reportes"
+            app:tint="@color/nav_text_color_selector" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Reportes"
+            android:textColor="@color/nav_text_color_selector"
+            android:textSize="12sp" />
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -25,6 +25,11 @@
           <theme>@style/Theme.Geofence</theme>
         </config>
       </layout>
+      <layout url="file://$PROJECT_DIR$/app/src/main/res/drawable/ic_gestion.xml">
+        <config>
+          <theme>@style/Theme.Geofence</theme>
+        </config>
+      </layout>
       <layout url="file://$PROJECT_DIR$/app/src/main/res/drawable/ic_launcher_background.xml">
         <config>
           <theme>@style/Theme.Geofence</theme>
@@ -41,6 +46,11 @@
         </config>
       </layout>
       <layout url="file://$PROJECT_DIR$/app/src/main/res/drawable/ic_registros.xml">
+        <config>
+          <theme>@style/Theme.Geofence</theme>
+        </config>
+      </layout>
+      <layout url="file://$PROJECT_DIR$/app/src/main/res/drawable/ic_reportes.xml">
         <config>
           <theme>@style/Theme.Geofence</theme>
         </config>
@@ -75,7 +85,17 @@
           <theme>@style/Theme.Geofence</theme>
         </config>
       </layout>
+      <layout url="file://$PROJECT_DIR$/app/src/main/res/layout/fragment_gestion.xml">
+        <config>
+          <theme>@style/Theme.Geofence</theme>
+        </config>
+      </layout>
       <layout url="file://$PROJECT_DIR$/app/src/main/res/layout/fragment_historial.xml">
+        <config>
+          <theme>@style/Theme.Geofence</theme>
+        </config>
+      </layout>
+      <layout url="file://$PROJECT_DIR$/app/src/main/res/layout/fragment_reportes.xml">
         <config>
           <theme>@style/Theme.Geofence</theme>
         </config>
@@ -106,17 +126,23 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e4c48124-3f77-47f5-86a6-3339e5c5d98b" name="Changes" comment="btn cerrar sesion">
+    <list default="true" id="e4c48124-3f77-47f5-86a6-3339e5c5d98b" name="Changes" comment="datos cuenta">
+      <change afterPath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/ui/gestion/GestionFragment.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/ui/reportes/ReportesFragment.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/src/main/res/drawable/ic_gestion.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/src/main/res/drawable/ic_reportes.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/src/main/res/layout/fragment_gestion.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/src/main/res/layout/fragment_reportes.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.gradle/9.1.0/executionHistory/executionHistory.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/9.1.0/executionHistory/executionHistory.bin" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.gradle/9.1.0/executionHistory/executionHistory.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/9.1.0/executionHistory/executionHistory.lock" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.gradle/9.1.0/fileHashes/fileHashes.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/9.1.0/fileHashes/fileHashes.bin" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.gradle/9.1.0/fileHashes/fileHashes.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/9.1.0/fileHashes/fileHashes.lock" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.gradle/9.1.0/fileHashes/resourceHashesCache.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/9.1.0/fileHashes/resourceHashesCache.bin" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/file-system.probe" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/file-system.probe" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/ui/cuenta/CuentaFragment.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/ui/cuenta/CuentaFragment.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/MainActivity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/MainActivity.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/res/layout/fragment_cuenta.xml" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/res/layout/fragment_cuenta.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/res/layout/shared_navbar.xml" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/res/layout/shared_navbar.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -205,6 +231,7 @@
 }</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\osval\AndroidStudioProjects\Geofence\app\src\main\res\drawable\icon" />
       <recent name="C:\Users\diego\Desktop\PIA-DispositivosMoviles-Equipo9\app" />
       <recent name="C:\Users\osval\AndroidStudioProjects\Geofence\app" />
     </key>
@@ -377,7 +404,15 @@
       <option name="project" value="LOCAL" />
       <updated>1772510769324</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="datos cuenta">
+      <option name="closed" value="true" />
+      <created>1772561653040</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1772561653040</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -399,7 +434,8 @@
     <MESSAGE value="detalle shared_navbar.xml" />
     <MESSAGE value="cambios visuales, navbar, ver contraseña, barra de estado" />
     <MESSAGE value="btn cerrar sesion" />
-    <option name="LAST_COMMIT_MESSAGE" value="btn cerrar sesion" />
+    <MESSAGE value="datos cuenta" />
+    <option name="LAST_COMMIT_MESSAGE" value="datos cuenta" />
   </component>
   <component name="play_dynamic_filters_status">
     <option name="appIdToCheckInfo">
