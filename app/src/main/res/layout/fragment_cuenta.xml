@@ -19,14 +19,16 @@
             android:elevation="4dp">
 
             <TextView
+                android:id="@+id/tvDriverName"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Rodrigo Cantú"
+                android:text="Cargando..."
                 android:textSize="18sp"
                 android:textStyle="bold"
                 android:textColor="#000"/>
 
             <TextView
+                android:id="@+id/tvUserRole"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Rol: Chofer"
@@ -35,6 +37,7 @@
                 android:layout_marginTop="4dp"/>
 
             <TextView
+                android:id="@+id/tvAssignedUnit"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Unidad asignada: GF-202"
@@ -59,9 +62,10 @@
             android:elevation="2dp">
 
             <TextView
+                android:id="@+id/tvCompletedRoutes"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Total de rutas realizadas: 28"
+                android:text="Total de rutas realizadas: ..."
                 android:textSize="14sp"
                 android:textColor="#000"/>
 
