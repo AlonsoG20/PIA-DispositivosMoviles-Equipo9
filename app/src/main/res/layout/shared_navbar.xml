@@ -6,17 +6,19 @@
     android:layout_height="80dp"
     android:background="@android:color/white"
     android:elevation="8dp"
-    android:paddingTop="6dp">
+    android:padding="8dp">
 
-    <!-- Item Cuenta (Seleccionado) -->
+    <!-- Item Cuenta -->
     <LinearLayout
         android:id="@+id/nav_cuenta"
         android:layout_width="0dp"
         android:layout_height="match_parent"
+        android:background="@drawable/nav_pill_background_selector"
         android:clickable="true"
         android:focusable="true"
         android:gravity="center"
         android:orientation="vertical"
+        android:padding="4dp"
         app:layout_constraintEnd_toStartOf="@+id/nav_rutas"
         app:layout_constraintHorizontal_weight="1"
         app:layout_constraintStart_toStartOf="parent"
@@ -25,16 +27,14 @@
         <ImageView
             android:layout_width="56dp"
             android:layout_height="32dp"
-            android:background="@drawable/navbar_pill_background"
-            android:padding="2dp"
             android:src="@drawable/ic_person"
-            app:tint="@android:color/black" />
+            app:tint="@color/nav_text_color_selector" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Cuenta"
-            android:textColor="@android:color/black"
+            android:textColor="@color/nav_text_color_selector"
             android:textSize="14sp"
             android:textStyle="bold" />
     </LinearLayout>
@@ -44,25 +44,28 @@
         android:id="@+id/nav_rutas"
         android:layout_width="0dp"
         android:layout_height="match_parent"
+        android:background="@drawable/nav_pill_background_selector"
         android:clickable="true"
         android:focusable="true"
         android:gravity="center"
         android:orientation="vertical"
+        android:padding="4dp"
         app:layout_constraintEnd_toStartOf="@+id/nav_historial"
         app:layout_constraintHorizontal_weight="1"
-        app:layout_constraintStart_toEndOf="@+id/nav_cuenta">
+        app:layout_constraintStart_toEndOf="@+id/nav_cuenta"
+        tools:layout_editor_absoluteY="8dp">
 
         <ImageView
             android:layout_width="56dp"
             android:layout_height="32dp"
             android:src="@drawable/ic_control"
-            app:tint="@android:color/darker_gray" />
+            app:tint="@color/nav_text_color_selector" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Rutas"
-            android:textColor="@android:color/darker_gray"
+            android:textColor="@color/nav_text_color_selector"
             android:textSize="14sp" />
     </LinearLayout>
 
@@ -71,13 +74,16 @@
         android:id="@+id/nav_historial"
         android:layout_width="0dp"
         android:layout_height="match_parent"
+        android:background="@drawable/nav_pill_background_selector"
         android:clickable="true"
         android:focusable="true"
         android:gravity="center"
         android:orientation="vertical"
+        android:padding="4dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_weight="1"
-        app:layout_constraintStart_toEndOf="@+id/nav_rutas">
+        app:layout_constraintStart_toEndOf="@+id/nav_rutas"
+        tools:layout_editor_absoluteY="8dp">
 
         <FrameLayout
             android:layout_width="wrap_content"
@@ -87,7 +93,7 @@
                 android:layout_width="56dp"
                 android:layout_height="32dp"
                 android:src="@drawable/ic_registros"
-                app:tint="@android:color/darker_gray" />
+                app:tint="@color/nav_text_color_selector" />
 
             <!-- Punto de notificación rojo -->
             <!--  <View
@@ -101,7 +107,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Historial"
-            android:textColor="@android:color/darker_gray"
+            android:textColor="@color/nav_text_color_selector"
             android:textSize="14sp" />
     </LinearLayout>
 

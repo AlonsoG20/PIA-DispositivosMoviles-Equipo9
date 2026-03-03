@@ -95,7 +95,8 @@
                 android:hint="ejemplo@correo.com"
                 android:inputType="textEmailAddress"
                 android:paddingStart="12dp"
-                android:paddingEnd="12dp" />
+                android:paddingEnd="12dp"
+                android:textColor="@color/black" />
 
             <!-- Label Contraseña -->
             <TextView
@@ -106,18 +107,36 @@
                 android:textColor="@color/black"
                 android:textSize="14sp" />
 
-            <!-- Campo Contraseña -->
-            <EditText
-                android:id="@+id/etPassword"
+            <!-- Contenedor Campo Contraseña -->
+            <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
-                android:layout_marginTop="6dp"
-                android:background="@drawable/input_background"
-                android:hint="••••••••"
-                android:inputType="textPassword"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
-                android:textColorHint="#959595" />
+                android:layout_marginTop="6dp">
+
+                <EditText
+                    android:id="@+id/etPassword"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/input_background"
+                    android:hint="••••••••"
+                    android:inputType="textPassword"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="45dp"
+                    android:textColor="@color/black"
+                    android:textColorHint="#959595" />
+
+                <ImageView
+                    android:id="@+id/ivShowPassword"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:layout_marginEnd="10dp"
+                    android:alpha="0.5"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:src="@android:drawable/ic_menu_view" />
+            </RelativeLayout>
 
             <!-- Botón Iniciar Sesión -->
             <Button

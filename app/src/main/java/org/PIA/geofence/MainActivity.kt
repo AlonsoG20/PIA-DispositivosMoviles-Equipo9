@@ -45,14 +45,14 @@ class MainActivity : AppCompatActivity() {
         checkUserRole()
 
         navCuenta.setOnClickListener {
-            loadFragment(CuentaFragment())
+            loadFragment(CuentaFragment(), it.id)
         }
 
         navHistorial.setOnClickListener {
-            loadFragment(HistorialFragment())
+            loadFragment(HistorialFragment(), it.id)
         }
         navRutas.setOnClickListener {
-            loadFragment(RutasFragment())
+            loadFragment(RutasFragment(), it.id)
         }
     }
 
@@ -68,20 +68,30 @@ class MainActivity : AppCompatActivity() {
                         loadFragment(SinRolFragment())
                     } else {
                         navbar.visibility = View.VISIBLE
-                        loadFragment(CuentaFragment())
+                        // Por defecto cargamos Cuenta al iniciar con rol
+                        loadFragment(CuentaFragment(), R.id.nav_cuenta)
                     }
                 }
             }
             .addOnFailureListener {
-                // En caso de error, por seguridad podemos mostrar la pantalla de sin rol
                 navbar.visibility = View.GONE
                 loadFragment(SinRolFragment())
             }
     }
 
-    private fun loadFragment(fragment: Fragment) {
+    private fun loadFragment(fragment: Fragment, selectedId: Int = -1) {
         supportFragmentManager.beginTransaction()
             .replace(R.id.fragmentContainer, fragment)
             .commit()
+        
+        if (selectedId != -1) {
+            updateNavSelection(selectedId)
+        }
+    }
+
+    private fun updateNavSelection(selectedId: Int) {
+        navCuenta.isSelected = (selectedId == R.id.nav_cuenta)
+        navRutas.isSelected = (selectedId == R.id.nav_rutas)
+        navHistorial.isSelected = (selectedId == R.id.nav_historial)
     }
 }

@@ -90,7 +90,8 @@
                 android:hint="Tu nombre"
                 android:inputType="textPersonName"
                 android:paddingStart="12dp"
-                android:paddingEnd="12dp" />
+                android:paddingEnd="12dp"
+                android:textColor="@color/black" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -109,7 +110,8 @@
                 android:hint="Tus apellidos"
                 android:inputType="textPersonName"
                 android:paddingStart="12dp"
-                android:paddingEnd="12dp" />
+                android:paddingEnd="12dp"
+                android:textColor="@color/black" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -128,7 +130,8 @@
                 android:hint="ejemplo@correo.com"
                 android:inputType="textEmailAddress"
                 android:paddingStart="12dp"
-                android:paddingEnd="12dp" />
+                android:paddingEnd="12dp"
+                android:textColor="@color/black" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -138,16 +141,34 @@
                 android:textColor="@color/black"
                 android:textSize="14sp" />
 
-            <EditText
-                android:id="@+id/etPassword"
+            <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
-                android:layout_marginTop="4dp"
-                android:background="@drawable/input_background"
-                android:hint="••••••••"
-                android:inputType="textPassword"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp" />
+                android:layout_marginTop="4dp">
+
+                <EditText
+                    android:id="@+id/etPassword"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/input_background"
+                    android:hint="••••••••"
+                    android:inputType="textPassword"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="45dp"
+                    android:textColor="@color/black" />
+
+                <ImageView
+                    android:id="@+id/ivShowPassword"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:layout_marginEnd="10dp"
+                    android:alpha="0.5"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:src="@android:drawable/ic_menu_view" />
+            </RelativeLayout>
 
             <!-- Requisitos de contraseña -->
             <LinearLayout
@@ -203,16 +224,34 @@
                 android:textColor="@color/black"
                 android:textSize="14sp" />
 
-            <EditText
-                android:id="@+id/etConfirmPassword"
+            <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
-                android:layout_marginTop="4dp"
-                android:background="@drawable/input_background"
-                android:hint="••••••••"
-                android:inputType="textPassword"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp" />
+                android:layout_marginTop="4dp">
+
+                <EditText
+                    android:id="@+id/etConfirmPassword"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/input_background"
+                    android:hint="••••••••"
+                    android:inputType="textPassword"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="45dp"
+                    android:textColor="@color/black" />
+
+                <ImageView
+                    android:id="@+id/ivShowConfirmPassword"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:layout_marginEnd="10dp"
+                    android:alpha="0.5"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:src="@android:drawable/ic_menu_view" />
+            </RelativeLayout>
 
             <Button
                 android:id="@+id/btnRegister"

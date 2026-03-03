@@ -2,9 +2,11 @@ package org.PIA.geofence.ui.login
 
 import android.content.Intent
 import android.os.Bundle
+import android.text.InputType
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
@@ -26,11 +28,18 @@ class RegisterActivity : AppCompatActivity() {
     private lateinit var tvError: TextView
     private lateinit var progressBar: ProgressBar
 
+    // Iconos de visibilidad
+    private lateinit var ivShowPassword: ImageView
+    private lateinit var ivShowConfirmPassword: ImageView
+    private var isPasswordVisible = false
+    private var isConfirmPasswordVisible = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_register)
 
-        window.statusBarColor = getColor(R.color.teal_primary)
+        // Se comenta debido a que ahora la app es fullscreen desde el tema
+        // window.statusBarColor = getColor(R.color.teal_primary)
 
         etNombre = findViewById(R.id.etNombre)
         etApellidos = findViewById(R.id.etApellidos)
@@ -41,6 +50,21 @@ class RegisterActivity : AppCompatActivity() {
         tvBackToLogin = findViewById(R.id.tvBackToLogin)
         tvError = findViewById(R.id.tvError)
         progressBar = findViewById(R.id.progressBar)
+        
+        ivShowPassword = findViewById(R.id.ivShowPassword)
+        ivShowConfirmPassword = findViewById(R.id.ivShowConfirmPassword)
+
+        // Configurar toggle para contraseña principal
+        ivShowPassword.setOnClickListener {
+            isPasswordVisible = !isPasswordVisible
+            togglePasswordVisibility(etPassword, ivShowPassword, isPasswordVisible)
+        }
+
+        // Configurar toggle para confirmar contraseña
+        ivShowConfirmPassword.setOnClickListener {
+            isConfirmPasswordVisible = !isConfirmPasswordVisible
+            togglePasswordVisibility(etConfirmPassword, ivShowConfirmPassword, isConfirmPasswordVisible)
+        }
 
         btnRegister.setOnClickListener {
             val nombre = etNombre.text.toString().trim()
@@ -64,9 +88,8 @@ class RegisterActivity : AppCompatActivity() {
                 }
                 is RegisterState.Success -> {
                     progressBar.visibility = View.GONE
-                    // CAMBIO AQUÍ: Informar al usuario y cerrar la actividad para volver al login
                     Toast.makeText(this, "Registro exitoso. Por favor verifica tu correo electrónico.", Toast.LENGTH_LONG).show()
-                    finish() // Regresa a la actividad anterior (LoginActivity)
+                    finish()
                 }
                 is RegisterState.Error -> {
                     progressBar.visibility = View.GONE
@@ -76,5 +99,19 @@ class RegisterActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    private fun togglePasswordVisibility(editText: EditText, imageView: ImageView, isVisible: Boolean) {
+        if (isVisible) {
+            // Mostrar contraseña
+            editText.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+            imageView.alpha = 1.0f 
+        } else {
+            // Ocultar contraseña
+            editText.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+            imageView.alpha = 0.5f
+        }
+        // Mover el cursor al final del texto después del cambio
+        editText.setSelection(editText.text.length)
     }
 }

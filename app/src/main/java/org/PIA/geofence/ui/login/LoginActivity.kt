@@ -2,9 +2,11 @@ package org.PIA.geofence.ui.login
 
 import android.content.Intent
 import android.os.Bundle
+import android.text.InputType
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
@@ -23,9 +25,12 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var btnLogin: Button
     private lateinit var etEmail: EditText
     private lateinit var etPassword: EditText
+    private lateinit var ivShowPassword: ImageView
     private lateinit var tvGoToRegister: TextView
     private lateinit var tvError: TextView
     private lateinit var progressBar: ProgressBar
+    
+    private var isPasswordVisible = false
 
     override fun onStart() {
         super.onStart()
@@ -40,14 +45,21 @@ class LoginActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
         
-        window.statusBarColor = getColor(R.color.teal_primary)
+        // Se comenta debido a que ahora la app es fullscreen desde el tema
+        // window.statusBarColor = getColor(R.color.teal_primary)
         
         btnLogin = findViewById(R.id.btnLogin)
         etEmail = findViewById(R.id.etEmail)
         etPassword = findViewById(R.id.etPassword)
+        ivShowPassword = findViewById(R.id.ivShowPassword)
         tvGoToRegister = findViewById(R.id.tvGoToRegister)
         tvError = findViewById(R.id.tvError)
         progressBar = findViewById(R.id.progressBar)
+
+        ivShowPassword.setOnClickListener {
+            isPasswordVisible = !isPasswordVisible
+            togglePasswordVisibility(etPassword, ivShowPassword, isPasswordVisible)
+        }
 
         btnLogin.setOnClickListener {
             val email = etEmail.text.toString().trim()
@@ -82,6 +94,20 @@ class LoginActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    private fun togglePasswordVisibility(editText: EditText, imageView: ImageView, isVisible: Boolean) {
+        if (isVisible) {
+            // Mostrar contraseña
+            editText.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+            imageView.alpha = 1.0f 
+        } else {
+            // Ocultar contraseña
+            editText.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+            imageView.alpha = 0.5f
+        }
+        // Mover el cursor al final del texto después del cambio
+        editText.setSelection(editText.text.length)
     }
 
     private fun showResendDialog() {
