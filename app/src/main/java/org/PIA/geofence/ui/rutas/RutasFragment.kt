@@ -1,9 +1,14 @@
 package org.PIA.geofence.ui.rutas
 
 import android.Manifest
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.ValueAnimator
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.os.Bundle
 import android.view.View
+import android.view.animation.LinearInterpolator
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
@@ -31,8 +36,11 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
 
     private var rutaIniciada = false
     private var paradasCompletadas = 0
+    
+    private var markerVehiculo: Marker? = null
+    private var poliLineaRuta: Polyline? = null
+    private var animatorVehiculo: ValueAnimator? = null
 
-    // Paradas fijas de la ruta (nombre, latitud, longitud)
     private val paradas = listOf(
         Triple("Parada 1", 25.6866, -100.3161),
         Triple("Parada 2", 25.6900, -100.3200),
@@ -44,21 +52,17 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Conectamos las vistas
         btnIniciarRuta = view.findViewById(R.id.btnIniciarRuta)
         tvEstadoRuta = view.findViewById(R.id.tvEstadoRuta)
         tvParadaActual = view.findViewById(R.id.tvParadaActual)
         tvParadasCompletadas = view.findViewById(R.id.tvParadasCompletadas)
 
-        // Inicializamos los clientes de ubicación y geofencing
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity())
         geofencingClient = LocationServices.getGeofencingClient(requireActivity())
 
-        // Inicializamos el mapa
         val mapFragment = childFragmentManager.findFragmentById(R.id.mapView) as SupportMapFragment
         mapFragment.getMapAsync(this)
 
-        // Botón iniciar/terminar ruta
         btnIniciarRuta.setOnClickListener {
             if (!rutaIniciada) {
                 iniciarRuta()
@@ -68,23 +72,19 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
         }
     }
 
-    // Se llama cuando el mapa está listo
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
 
-        // Activamos el botón de mi ubicación si tenemos permiso
         if (ActivityCompat.checkSelfPermission(requireContext(),
                 Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             mMap.isMyLocationEnabled = true
         } else {
-            // Pedimos el permiso si no lo tenemos
             requestPermissions(
                 arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
                 LOCATION_PERMISSION_REQUEST
             )
         }
 
-        // Ponemos los marcadores de las paradas en el mapa
         paradas.forEach { parada ->
             mMap.addMarker(
                 MarkerOptions()
@@ -94,52 +94,87 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
             )
         }
 
-        // Centramos la cámara en la primera parada
+        val polylineOptions = PolylineOptions()
+            .addAll(paradas.map { LatLng(it.second, it.third) })
+            .color(Color.parseColor("#4CAF9E"))
+            .width(12f)
+            .jointType(JointType.ROUND)
+        poliLineaRuta = mMap.addPolyline(polylineOptions)
+
         val primeraParada = LatLng(paradas[0].second, paradas[0].third)
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(primeraParada, 14f))
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(primeraParada, 15f))
     }
 
     private fun iniciarRuta() {
         rutaIniciada = true
         paradasCompletadas = 0
 
-        // Actualizamos la UI
         btnIniciarRuta.text = "Terminar Ruta"
-        btnIniciarRuta.backgroundTintList = null
-        btnIniciarRuta.setBackgroundResource(R.drawable.button_background)
         tvEstadoRuta.text = "Ruta en progreso"
         tvParadaActual.text = "Próxima parada: ${paradas[0].first}"
         tvParadasCompletadas.text = "0/${paradas.size} paradas completadas"
 
-        // Registramos los geofences de cada parada
+        val inicio = LatLng(paradas[0].second, paradas[0].third)
+        
+        // CORRECCIÓN: Usamos un marcador por defecto de color ROJO para el vehículo
+        // para evitar el error de decodificación de Vector Drawable.
+        markerVehiculo = mMap.addMarker(
+            MarkerOptions()
+                .position(inicio)
+                .title("Vehículo")
+                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+                .anchor(0.5f, 0.5f)
+                .zIndex(1.0f)
+        )
+
         registrarGeofences()
-        // Dibujamos un círculo en cada parada para visualizar el geofence
-        paradas.forEach { parada ->
-            mMap.addCircle(
-                CircleOptions()
-                    .center(LatLng(parada.second, parada.third))
-                    .radius(100.0) // mismos 100 metros del geofence
-                    .strokeColor(0xFF4CAF9E.toInt())
-                    .fillColor(0x334CAF9E)
-                    .strokeWidth(3f)
-            )
-        }
+        animarVehiculoEntrePuntos(0)
 
         Toast.makeText(requireContext(), "¡Ruta iniciada!", Toast.LENGTH_SHORT).show()
     }
 
+    private fun animarVehiculoEntrePuntos(index: Int) {
+        if (!rutaIniciada || index >= paradas.size - 1) return
+
+        val inicio = LatLng(paradas[index].second, paradas[index].third)
+        val fin = LatLng(paradas[index + 1].second, paradas[index + 1].third)
+
+        animatorVehiculo = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 5000
+            interpolator = LinearInterpolator()
+            addUpdateListener { animation ->
+                val fraction = animation.animatedValue as Float
+                val lat = (fin.latitude - inicio.latitude) * fraction + inicio.latitude
+                val lng = (fin.longitude - inicio.longitude) * fraction + inicio.longitude
+                val currentPos = LatLng(lat, lng)
+                
+                markerVehiculo?.position = currentPos
+                mMap.animateCamera(CameraUpdateFactory.newLatLng(currentPos))
+            }
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    if (rutaIniciada) {
+                        onParadaAlcanzada("parada_${index + 1}")
+                        animarVehiculoEntrePuntos(index + 1)
+                    }
+                }
+            })
+            start()
+        }
+    }
+
     private fun terminarRuta() {
         rutaIniciada = false
+        animatorVehiculo?.cancel()
+        markerVehiculo?.remove()
+        markerVehiculo = null
 
-        // Actualizamos la UI
         btnIniciarRuta.text = "Iniciar Ruta"
         tvEstadoRuta.text = "Ruta terminada"
         tvParadaActual.text = "Próxima parada: --"
         tvParadasCompletadas.text = "$paradasCompletadas/${paradas.size} paradas completadas"
 
-        // Eliminamos los geofences
         geofencingClient.removeGeofences(geofenceIds)
-
         Toast.makeText(requireContext(), "Ruta terminada", Toast.LENGTH_SHORT).show()
     }
 
@@ -149,11 +184,10 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
             return
         }
 
-        // Creamos un geofence por cada parada con radio de 100 metros
         val geofenceList = paradas.mapIndexed { index, parada ->
             Geofence.Builder()
                 .setRequestId("parada_$index")
-                .setCircularRegion(parada.second, parada.third, 100f) // 100 metros de radio
+                .setCircularRegion(parada.second, parada.third, 100f)
                 .setExpirationDuration(Geofence.NEVER_EXPIRE)
                 .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER)
                 .build()
@@ -165,30 +199,20 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
             .build()
 
         geofencingClient.addGeofences(request, geofencePendingIntent)
-            .addOnSuccessListener {
-                Toast.makeText(requireContext(), "Geofences activados", Toast.LENGTH_SHORT).show()
-            }
-            .addOnFailureListener {
-                Toast.makeText(requireContext(), "Error al activar geofences: ${it.message}", Toast.LENGTH_SHORT).show()
-            }
     }
 
-    // Cuando el chofer entra a una parada
     fun onParadaAlcanzada(paradaId: String) {
         val index = paradaId.replace("parada_", "").toInt()
-        paradasCompletadas++
+        paradasCompletadas = index + 1
 
         tvParadasCompletadas.text = "$paradasCompletadas/${paradas.size} paradas completadas"
 
-        // Actualizamos la próxima parada
         if (index + 1 < paradas.size) {
             tvParadaActual.text = "Próxima parada: ${paradas[index + 1].first}"
         } else {
-            tvParadaActual.text = "Última parada alcanzada"
+            tvParadaActual.text = "¡Ruta completada!"
+            terminarRuta()
         }
-
-        Toast.makeText(requireContext(),
-            "¡Llegaste a ${paradas[index].first}!", Toast.LENGTH_SHORT).show()
     }
 
     override fun onRequestPermissionsResult(
@@ -202,9 +226,6 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
                         Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
                     mMap.isMyLocationEnabled = true
                 }
-            } else {
-                Toast.makeText(requireContext(),
-                    "Se necesita permiso de ubicación", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -216,7 +237,6 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
         )
     }
 
-    // PendingIntent para recibir eventos de geofencing
     private val geofencePendingIntent by lazy {
         val intent = android.content.Intent(requireContext(), ReceptorGeofence::class.java)
         android.app.PendingIntent.getBroadcast(
