@@ -20,14 +20,20 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import org.PIA.geofence.R
 import org.PIA.geofence.ReceptorGeofence
+import java.text.SimpleDateFormat
+import java.util.*
 
 class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
 
     private lateinit var mMap: GoogleMap
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var geofencingClient: GeofencingClient
+    private val db = FirebaseFirestore.getInstance()
+    private val auth = FirebaseAuth.getInstance()
 
     private lateinit var btnIniciarRuta: Button
     private lateinit var tvEstadoRuta: TextView
@@ -67,7 +73,7 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
             if (!rutaIniciada) {
                 iniciarRuta()
             } else {
-                terminarRuta()
+                terminarRuta(true)
             }
         }
     }
@@ -115,9 +121,6 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
         tvParadasCompletadas.text = "0/${paradas.size} paradas completadas"
 
         val inicio = LatLng(paradas[0].second, paradas[0].third)
-        
-        // CORRECCIÓN: Usamos un marcador por defecto de color ROJO para el vehículo
-        // para evitar el error de decodificación de Vector Drawable.
         markerVehiculo = mMap.addMarker(
             MarkerOptions()
                 .position(inicio)
@@ -163,7 +166,11 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
         }
     }
 
-    private fun terminarRuta() {
+    private fun terminarRuta(guardar: Boolean = false) {
+        if (guardar && paradasCompletadas > 0) {
+            guardarViajeEnHistorial()
+        }
+
         rutaIniciada = false
         animatorVehiculo?.cancel()
         markerVehiculo?.remove()
@@ -176,6 +183,34 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
 
         geofencingClient.removeGeofences(geofenceIds)
         Toast.makeText(requireContext(), "Ruta terminada", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun guardarViajeEnHistorial() {
+        val userId = auth.currentUser?.uid ?: return
+        val kmRecorridos = (paradasCompletadas * 0.5) 
+
+        // Uso de SimpleDateFormat (común en Kotlin) para un nombre legible
+        val sdf = SimpleDateFormat("dd/MM HH:mm", Locale.getDefault())
+        val nombreViaje = "Viaje - ${sdf.format(Date())}"
+
+        val viaje = hashMapOf(
+            "userId" to userId,
+            "titulo" to nombreViaje,
+            "distancia" to "%.1f".format(kmRecorridos),
+            "paradas" to paradasCompletadas,
+            "fecha" to com.google.firebase.Timestamp.now(),
+            "costo" to (kmRecorridos * 15).toInt().toString(),
+            "combustible" to "%.2f".format(kmRecorridos * 0.1)
+        )
+
+        db.collection("viajes")
+            .add(viaje)
+            .addOnSuccessListener {
+                Toast.makeText(requireContext(), "Viaje guardado", Toast.LENGTH_SHORT).show()
+            }
+            .addOnFailureListener {
+                Toast.makeText(requireContext(), "Error: ${it.message}", Toast.LENGTH_LONG).show()
+            }
     }
 
     private fun registrarGeofences() {
@@ -211,7 +246,7 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
             tvParadaActual.text = "Próxima parada: ${paradas[index + 1].first}"
         } else {
             tvParadaActual.text = "¡Ruta completada!"
-            terminarRuta()
+            terminarRuta(true)
         }
     }
 
