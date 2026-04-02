@@ -22,6 +22,9 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.maps.DirectionsApi
+import com.google.maps.GeoApiContext
+import com.google.maps.model.TravelMode
 import org.PIA.geofence.R
 import org.PIA.geofence.ReceptorGeofence
 import java.text.SimpleDateFormat
@@ -46,6 +49,11 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
     private var markerVehiculo: Marker? = null
     private var poliLineaRuta: Polyline? = null
     private var animatorVehiculo: ValueAnimator? = null
+    
+    private var puntosCaminoReal = mutableListOf<LatLng>()
+
+    // NUEVA API KEY - Asegurada en ambos lugares
+    private val apiKey = "AIzaSyAjjiNfvcx-3pSKpNULTceVeX46YxLfItc"
 
     private val paradas = listOf(
         Triple("Parada 1", 25.6866, -100.3161),
@@ -85,10 +93,7 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
                 Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             mMap.isMyLocationEnabled = true
         } else {
-            requestPermissions(
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-                LOCATION_PERMISSION_REQUEST
-            )
+            requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 1001)
         }
 
         paradas.forEach { parada ->
@@ -100,18 +105,73 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
             )
         }
 
-        val polylineOptions = PolylineOptions()
-            .addAll(paradas.map { LatLng(it.second, it.third) })
-            .color(Color.parseColor("#4CAF9E"))
-            .width(12f)
-            .jointType(JointType.ROUND)
-        poliLineaRuta = mMap.addPolyline(polylineOptions)
+        trazarCaminoPorCalles()
 
         val primeraParada = LatLng(paradas[0].second, paradas[0].third)
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(primeraParada, 15f))
     }
 
+    private fun trazarCaminoPorCalles() {
+        val context = GeoApiContext.Builder()
+            .apiKey(apiKey)
+            .build()
+
+        val origin = "${paradas.first().second},${paradas[0].third}"
+        val destination = "${paradas.last().second},${paradas.last().third}"
+        val intermediateWaypoints = paradas.subList(1, paradas.size - 1).map { 
+            com.google.maps.model.LatLng(it.second, it.third) 
+        }.toTypedArray()
+
+        Thread {
+            try {
+                val result = DirectionsApi.newRequest(context)
+                    .mode(TravelMode.DRIVING)
+                    .origin(origin)
+                    .destination(destination)
+                    .waypoints(*intermediateWaypoints)
+                    .await()
+
+                if (result.routes.isNotEmpty()) {
+                    val path = result.routes[0].overviewPolyline.decodePath()
+                    val decodedPath = path.map { LatLng(it.lat, it.lng) }
+                    
+                    activity?.runOnUiThread {
+                        puntosCaminoReal.clear()
+                        puntosCaminoReal.addAll(decodedPath)
+                        
+                        poliLineaRuta?.remove()
+                        poliLineaRuta = mMap.addPolyline(PolylineOptions()
+                            .addAll(decodedPath)
+                            .color(Color.parseColor("#4CAF9E"))
+                            .width(12f)
+                            .jointType(JointType.ROUND))
+                    }
+                } else {
+                    activity?.runOnUiThread {
+                        Toast.makeText(requireContext(), "No se encontraron rutas disponibles", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } catch (e: Exception) {
+                activity?.runOnUiThread {
+                    // Muestra el error exacto de la API para diagnóstico
+                    val errorMsg = e.message ?: "Error desconocido"
+                    if (errorMsg.contains("REQUEST_DENIED")) {
+                        Toast.makeText(requireContext(), "API Key denegada. Revisa Directions API y SHA-1", Toast.LENGTH_LONG).show()
+                    } else {
+                        Toast.makeText(requireContext(), "Error API: $errorMsg", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        }.start()
+    }
+
     private fun iniciarRuta() {
+        if (puntosCaminoReal.isEmpty()) {
+            Toast.makeText(requireContext(), "Calculando camino, espera un momento...", Toast.LENGTH_SHORT).show()
+            trazarCaminoPorCalles() // Reintento
+            return
+        }
+        
         rutaIniciada = true
         paradasCompletadas = 0
 
@@ -120,10 +180,9 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
         tvParadaActual.text = "Próxima parada: ${paradas[0].first}"
         tvParadasCompletadas.text = "0/${paradas.size} paradas completadas"
 
-        val inicio = LatLng(paradas[0].second, paradas[0].third)
         markerVehiculo = mMap.addMarker(
             MarkerOptions()
-                .position(inicio)
+                .position(puntosCaminoReal[0])
                 .title("Vehículo")
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
                 .anchor(0.5f, 0.5f)
@@ -131,19 +190,19 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
         )
 
         registrarGeofences()
-        animarVehiculoEntrePuntos(0)
+        animarVehiculoPorCamino(0)
 
         Toast.makeText(requireContext(), "¡Ruta iniciada!", Toast.LENGTH_SHORT).show()
     }
 
-    private fun animarVehiculoEntrePuntos(index: Int) {
-        if (!rutaIniciada || index >= paradas.size - 1) return
+    private fun animarVehiculoPorCamino(pointIndex: Int) {
+        if (!rutaIniciada || pointIndex >= puntosCaminoReal.size - 1) return
 
-        val inicio = LatLng(paradas[index].second, paradas[index].third)
-        val fin = LatLng(paradas[index + 1].second, paradas[index + 1].third)
+        val inicio = puntosCaminoReal[pointIndex]
+        val fin = puntosCaminoReal[pointIndex + 1]
 
         animatorVehiculo = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 5000
+            duration = 400
             interpolator = LinearInterpolator()
             addUpdateListener { animation ->
                 val fraction = animation.animatedValue as Float
@@ -152,23 +211,33 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
                 val currentPos = LatLng(lat, lng)
                 
                 markerVehiculo?.position = currentPos
-                mMap.animateCamera(CameraUpdateFactory.newLatLng(currentPos))
+                mMap.moveCamera(CameraUpdateFactory.newLatLng(currentPos))
+                verificarLlegadaAParada(currentPos)
             }
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
-                    if (rutaIniciada) {
-                        onParadaAlcanzada("parada_${index + 1}")
-                        animarVehiculoEntrePuntos(index + 1)
-                    }
+                    if (rutaIniciada) animarVehiculoPorCamino(pointIndex + 1)
                 }
             })
             start()
         }
     }
 
+    private fun verificarLlegadaAParada(pos: LatLng) {
+        paradas.forEachIndexed { index, parada ->
+            if (index > paradasCompletadas - 1) {
+                val distance = FloatArray(1)
+                android.location.Location.distanceBetween(pos.latitude, pos.longitude, parada.second, parada.third, distance)
+                if (distance[0] < 50) { 
+                    onParadaAlcanzada("parada_$index")
+                }
+            }
+        }
+    }
+
     private fun terminarRuta(guardar: Boolean = false) {
         if (guardar && paradasCompletadas > 0) {
-            guardarViajeEnHistorial()
+            guardarViajeYActualizarCuenta()
         }
 
         rutaIniciada = false
@@ -179,67 +248,60 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
         btnIniciarRuta.text = "Iniciar Ruta"
         tvEstadoRuta.text = "Ruta terminada"
         tvParadaActual.text = "Próxima parada: --"
-        tvParadasCompletadas.text = "$paradasCompletadas/${paradas.size} paradas completadas"
-
+        
         geofencingClient.removeGeofences(geofenceIds)
-        Toast.makeText(requireContext(), "Ruta terminada", Toast.LENGTH_SHORT).show()
     }
 
-    private fun guardarViajeEnHistorial() {
+    private fun guardarViajeYActualizarCuenta() {
         val userId = auth.currentUser?.uid ?: return
-        val kmRecorridos = (paradasCompletadas * 0.5) 
-
-        // Uso de SimpleDateFormat (común en Kotlin) para un nombre legible
+        val kmRecorridos = (paradasCompletadas * 0.5)
         val sdf = SimpleDateFormat("dd/MM HH:mm", Locale.getDefault())
         val nombreViaje = "Viaje - ${sdf.format(Date())}"
 
-        val viaje = hashMapOf(
-            "userId" to userId,
-            "titulo" to nombreViaje,
-            "distancia" to "%.1f".format(kmRecorridos),
-            "paradas" to paradasCompletadas,
-            "fecha" to com.google.firebase.Timestamp.now(),
-            "costo" to (kmRecorridos * 15).toInt().toString(),
-            "combustible" to "%.2f".format(kmRecorridos * 0.1)
-        )
+        db.collection("usuarios").document(userId).get().addOnSuccessListener { userDoc ->
+            val nombre = userDoc.getString("nombre") ?: ""
+            val apellidos = userDoc.getString("apellidos") ?: ""
+            val nombreCompleto = "$nombre $apellidos".trim()
 
-        db.collection("viajes")
-            .add(viaje)
-            .addOnSuccessListener {
-                Toast.makeText(requireContext(), "Viaje guardado", Toast.LENGTH_SHORT).show()
-            }
-            .addOnFailureListener {
-                Toast.makeText(requireContext(), "Error: ${it.message}", Toast.LENGTH_LONG).show()
-            }
+            val viaje = hashMapOf(
+                "userId" to userId,
+                "titulo" to nombreViaje,
+                "distancia" to "%.1f".format(kmRecorridos),
+                "paradas" to paradasCompletadas,
+                "fecha" to com.google.firebase.Timestamp.now(),
+                "costo" to (kmRecorridos * 15).toInt().toString(),
+                "combustible" to "%.2f".format(kmRecorridos * 0.1)
+            )
+            db.collection("viajes").add(viaje)
+
+            val registroRuta = hashMapOf(
+                "chofer" to nombreCompleto,
+                "completado" to true,
+                "fecha" to com.google.firebase.Timestamp.now(),
+                "nombre" to nombreViaje
+            )
+            db.collection("rutas").add(registroRuta)
+                .addOnSuccessListener {
+                    Toast.makeText(requireContext(), "Ruta guardada y sincronizada", Toast.LENGTH_SHORT).show()
+                }
+        }
     }
 
     private fun registrarGeofences() {
-        if (ActivityCompat.checkSelfPermission(requireContext(),
-                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            return
-        }
-
+        if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) return
         val geofenceList = paradas.mapIndexed { index, parada ->
-            Geofence.Builder()
-                .setRequestId("parada_$index")
-                .setCircularRegion(parada.second, parada.third, 100f)
-                .setExpirationDuration(Geofence.NEVER_EXPIRE)
-                .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER)
-                .build()
+            Geofence.Builder().setRequestId("parada_$index").setCircularRegion(parada.second, parada.third, 100f)
+                .setExpirationDuration(Geofence.NEVER_EXPIRE).setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER).build()
         }
-
-        val request = GeofencingRequest.Builder()
-            .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
-            .addGeofences(geofenceList)
-            .build()
-
+        val request = GeofencingRequest.Builder().setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER).addGeofences(geofenceList).build()
         geofencingClient.addGeofences(request, geofencePendingIntent)
     }
 
     fun onParadaAlcanzada(paradaId: String) {
         val index = paradaId.replace("parada_", "").toInt()
+        if (index < paradasCompletadas) return
+        
         paradasCompletadas = index + 1
-
         tvParadasCompletadas.text = "$paradasCompletadas/${paradas.size} paradas completadas"
 
         if (index + 1 < paradas.size) {
@@ -250,35 +312,20 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
         }
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        if (requestCode == LOCATION_PERMISSION_REQUEST) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                if (ActivityCompat.checkSelfPermission(requireContext(),
-                        Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                    mMap.isMyLocationEnabled = true
-                }
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        if (requestCode == 1001 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                mMap.isMyLocationEnabled = true
             }
         }
     }
 
     companion object {
-        private const val LOCATION_PERMISSION_REQUEST = 1001
-        private val geofenceIds = listOf(
-            "parada_0", "parada_1", "parada_2", "parada_3", "parada_4"
-        )
+        private val geofenceIds = listOf("parada_0", "parada_1", "parada_2", "parada_3", "parada_4")
     }
 
     private val geofencePendingIntent by lazy {
         val intent = android.content.Intent(requireContext(), ReceptorGeofence::class.java)
-        android.app.PendingIntent.getBroadcast(
-            requireContext(),
-            0,
-            intent,
-            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_MUTABLE
-        )
+        android.app.PendingIntent.getBroadcast(requireContext(), 0, intent, android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_MUTABLE)
     }
 }
