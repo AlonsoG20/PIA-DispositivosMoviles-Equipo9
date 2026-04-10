@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
@@ -19,7 +20,10 @@ class CuentaFragment : Fragment(R.layout.fragment_cuenta) {
 
     private lateinit var tvDriverName: TextView
     private lateinit var tvUserRole: TextView
+    private lateinit var tvAssignedUnit: TextView
     private lateinit var tvCompletedRoutes: TextView
+    private lateinit var cardStats: LinearLayout
+    private lateinit var spacerStats: View
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -29,7 +33,10 @@ class CuentaFragment : Fragment(R.layout.fragment_cuenta) {
 
         tvDriverName = view.findViewById(R.id.tvDriverName)
         tvUserRole = view.findViewById(R.id.tvUserRole)
+        tvAssignedUnit = view.findViewById(R.id.tvAssignedUnit)
         tvCompletedRoutes = view.findViewById(R.id.tvCompletedRoutes)
+        cardStats = view.findViewById(R.id.cardStats)
+        spacerStats = view.findViewById(R.id.spacerStats)
         val btnLogout = view.findViewById<Button>(R.id.btnLogout)
 
         btnLogout.setOnClickListener {
@@ -38,6 +45,11 @@ class CuentaFragment : Fragment(R.layout.fragment_cuenta) {
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             startActivity(intent)
         }
+
+        // Ocultar por defecto hasta saber el rol
+        tvAssignedUnit.visibility = View.GONE
+        cardStats.visibility = View.GONE
+        spacerStats.visibility = View.GONE
 
         loadUserData()
     }
@@ -50,17 +62,34 @@ class CuentaFragment : Fragment(R.layout.fragment_cuenta) {
                 if (document != null && document.exists()) {
                     val nombre = document.getString("nombre") ?: ""
                     val apellidos = document.getString("apellidos") ?: ""
-                    val rol = document.getString("rol") ?: "Chofer"
+                    val rol = document.getString("rol") ?: ""
                     val nombreCompleto = "$nombre $apellidos".trim()
 
                     tvDriverName.text = if (nombreCompleto.isNotEmpty()) nombreCompleto else "Usuario"
                     tvUserRole.text = "Rol: $rol"
 
-                    // Una vez que tenemos el nombre del chofer, buscamos sus rutas completadas
-                    if (nombreCompleto.isNotEmpty()) {
-                        loadCompletedRoutes(nombreCompleto)
+                    // Mostrar unidad y estadísticas solo si el rol es Chofer
+                    if (rol.equals("chofer", ignoreCase = true)) {
+                        tvAssignedUnit.visibility = View.VISIBLE
+                        cardStats.visibility = View.VISIBLE
+                        spacerStats.visibility = View.VISIBLE
+
+                        // Cargar la unidad real si está en el documento
+                        val unidad = document.getString("unidad")
+                        if (unidad != null) {
+                            tvAssignedUnit.text = "Unidad asignada: $unidad"
+                        }
+
+                        // Buscar sus rutas completadas
+                        if (nombreCompleto.isNotEmpty()) {
+                            loadCompletedRoutes(nombreCompleto)
+                        } else {
+                            tvCompletedRoutes.text = "Total de rutas realizadas: sin rutas completadas"
+                        }
                     } else {
-                        tvCompletedRoutes.text = "Total de rutas realizadas: sin rutas completadas"
+                        tvAssignedUnit.visibility = View.GONE
+                        cardStats.visibility = View.GONE
+                        spacerStats.visibility = View.GONE
                     }
                 }
             }

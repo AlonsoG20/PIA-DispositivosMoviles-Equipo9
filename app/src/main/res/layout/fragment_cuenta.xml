@@ -49,11 +49,13 @@
 
         <!-- ESPACIO -->
         <View
+            android:id="@+id/spacerStats"
             android:layout_width="match_parent"
             android:layout_height="16dp"/>
 
         <!-- TARJETA ESTADÍSTICAS -->
         <LinearLayout
+            android:id="@+id/cardStats"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
