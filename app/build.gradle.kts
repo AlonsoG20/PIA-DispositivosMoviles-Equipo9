@@ -64,4 +64,8 @@ dependencies {
     implementation("com.google.android.gms:play-services-maps:18.2.0")
     // Geofencing
     implementation("com.google.android.gms:play-services-location:21.2.0")
+
+    // Google Maps Services Java (for Directions API)
+    implementation("com.google.maps:google-maps-services:2.2.0")
+    implementation("org.slf4j:slf4j-simple:1.7.25")
 }

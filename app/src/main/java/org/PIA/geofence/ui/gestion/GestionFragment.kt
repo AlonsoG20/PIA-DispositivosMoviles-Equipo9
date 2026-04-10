@@ -1,10 +1,10 @@
 package org.PIA.geofence.ui.gestion
 
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.Toast
@@ -13,90 +13,126 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.Query
 import org.PIA.geofence.R
+import org.PIA.geofence.data.Unidad
 import org.PIA.geofence.data.User
 
 class GestionFragment : Fragment() {
 
     private lateinit var db: FirebaseFirestore
-    private lateinit var adapter: UsersSinRolAdapter
-    private var usersListener: ListenerRegistration? = null
-    private var isExpanded = false
+    
+    private lateinit var adapterSinRol: UsersSinRolAdapter
+    private lateinit var adapterUnidades: UnidadAdapter
+    private lateinit var adapterPersonal: UsersSinRolAdapter
+
+    private var sinRolListener: ListenerRegistration? = null
+    private var unidadesListener: ListenerRegistration? = null
+    private var personalListener: ListenerRegistration? = null
+
+    private var isSinRolExpanded = false
+    private var isUnidadesExpanded = false
+    private var isPersonalExpanded = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        val view = inflater.inflate(R.layout.fragment_gestion, container, false)
+        return inflater.inflate(R.layout.fragment_gestion, container, false)
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
         db = FirebaseFirestore.getInstance()
-        
-        setupAccordion(view)
-        setupRecyclerView(view)
-        loadUsersSinRol()
-        
-        return view
+        setupSections(view)
+        loadData()
     }
 
-    private fun setupAccordion(view: View) {
-        val header = view.findViewById<LinearLayout>(R.id.layoutHeaderAsignar)
-        val rv = view.findViewById<RecyclerView>(R.id.rvUsuariosSinRol)
-        val icon = view.findViewById<ImageView>(R.id.ivExpandIcon)
+    private fun setupSections(view: View) {
+        // 1. Solicitudes (Sin Rol)
+        val headerSinRol = view.findViewById<LinearLayout>(R.id.layoutHeaderAsignar)
+        val rvSinRol = view.findViewById<RecyclerView>(R.id.rvUsuariosSinRol)
+        val iconSinRol = view.findViewById<ImageView>(R.id.ivExpandIcon)
+        
+        adapterSinRol = UsersSinRolAdapter(emptyList()) { user, newRole -> assignRole(user, newRole) }
+        rvSinRol.layoutManager = LinearLayoutManager(context)
+        rvSinRol.adapter = adapterSinRol
 
-        header.setOnClickListener {
-            isExpanded = !isExpanded
-            rv.visibility = if (isExpanded) View.VISIBLE else View.GONE
-            icon.setImageResource(
-                if (isExpanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more
-            )
+        headerSinRol.setOnClickListener {
+            isSinRolExpanded = !isSinRolExpanded
+            rvSinRol.visibility = if (isSinRolExpanded) View.VISIBLE else View.GONE
+            iconSinRol.setImageResource(if (isSinRolExpanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more)
+        }
+
+        // 2. Unidades (Flota)
+        val headerUnidades = view.findViewById<LinearLayout>(R.id.layoutHeaderUnidades)
+        val rvUnidades = view.findViewById<RecyclerView>(R.id.rvUnidades)
+        val iconUnidades = view.findViewById<ImageView>(R.id.ivExpandIconUnidades)
+        val btnAdd = view.findViewById<Button>(R.id.btnAddUnidad)
+
+        adapterUnidades = UnidadAdapter(emptyList())
+        rvUnidades.layoutManager = LinearLayoutManager(context)
+        rvUnidades.adapter = adapterUnidades
+
+        headerUnidades.setOnClickListener {
+            isUnidadesExpanded = !isUnidadesExpanded
+            rvUnidades.visibility = if (isUnidadesExpanded) View.VISIBLE else View.GONE
+            btnAdd.visibility = if (isUnidadesExpanded) View.VISIBLE else View.GONE
+            iconUnidades.setImageResource(if (isUnidadesExpanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more)
+        }
+
+        // 3. Personal
+        val headerPersonal = view.findViewById<LinearLayout>(R.id.layoutHeaderPersonal)
+        val rvPersonal = view.findViewById<RecyclerView>(R.id.rvPersonal)
+        val iconPersonal = view.findViewById<ImageView>(R.id.ivExpandIconPersonal)
+
+        adapterPersonal = UsersSinRolAdapter(emptyList()) { _, _ -> }
+        rvPersonal.layoutManager = LinearLayoutManager(context)
+        rvPersonal.adapter = adapterPersonal
+
+        headerPersonal.setOnClickListener {
+            isPersonalExpanded = !isPersonalExpanded
+            rvPersonal.visibility = if (isPersonalExpanded) View.VISIBLE else View.GONE
+            iconPersonal.setImageResource(if (isPersonalExpanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more)
         }
     }
 
-    private fun setupRecyclerView(view: View) {
-        val rv = view.findViewById<RecyclerView>(R.id.rvUsuariosSinRol)
-        adapter = UsersSinRolAdapter(emptyList()) { user, newRole ->
-            assignRole(user, newRole)
-        }
-        rv.layoutManager = LinearLayoutManager(context)
-        rv.adapter = adapter
-    }
-
-    private fun loadUsersSinRol() {
-        usersListener?.remove()
-        
-        usersListener = db.collection("usuarios")
+    private fun loadData() {
+        sinRolListener = db.collection("usuarios")
             .whereEqualTo("rol", "sinRol")
-            .addSnapshotListener { snapshot, e ->
-                if (e != null) {
-                    Log.e("GestionFragment", "Error de permisos o red: ${e.message}")
-                    if (isAdded) {
-                        Toast.makeText(context, "Error: No tienes permisos de Gerente", Toast.LENGTH_SHORT).show()
-                    }
-                    return@addSnapshotListener
-                }
+            .addSnapshotListener { snapshot, _ ->
+                val list = snapshot?.toObjects(User::class.java) ?: emptyList()
+                adapterSinRol.updateUsers(list)
+            }
 
-                val userList = snapshot?.toObjects(User::class.java) ?: emptyList()
-                Log.d("GestionFragment", "Usuarios encontrados: ${userList.size}")
-                adapter.updateUsers(userList)
+        unidadesListener = db.collection("unidades")
+            .orderBy("placa", Query.Direction.ASCENDING)
+            .addSnapshotListener { snapshot, _ ->
+                val list = snapshot?.toObjects(Unidad::class.java) ?: emptyList()
+                adapterUnidades.updateUnidades(list)
+            }
+
+        personalListener = db.collection("usuarios")
+            .whereIn("rol", listOf("chofer", "despachador"))
+            .addSnapshotListener { snapshot, _ ->
+                val list = snapshot?.toObjects(User::class.java) ?: emptyList()
+                adapterPersonal.updateUsers(list)
             }
     }
 
     private fun assignRole(user: User, newRole: String) {
-        if (user.id.isEmpty()) return
-
         db.collection("usuarios").document(user.id)
             .update("rol", newRole)
             .addOnSuccessListener {
-                if (isAdded) Toast.makeText(context, "Rol actualizado", Toast.LENGTH_SHORT).show()
-            }
-            .addOnFailureListener { e ->
-                Log.e("GestionFragment", "Error al actualizar: ${e.message}")
-                if (isAdded) Toast.makeText(context, "Error al actualizar rol", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Acceso concedido como $newRole", Toast.LENGTH_SHORT).show()
             }
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        usersListener?.remove()
+        sinRolListener?.remove()
+        unidadesListener?.remove()
+        personalListener?.remove()
     }
 }
