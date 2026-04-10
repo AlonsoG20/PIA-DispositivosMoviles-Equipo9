@@ -188,6 +188,7 @@
                     android:textStyle="bold" />
 
                 <TextView
+                    android:id="@+id/tvReqUppercase"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="• Al menos una mayúscula"
@@ -195,6 +196,7 @@
                     android:textSize="11sp" />
 
                 <TextView
+                    android:id="@+id/tvReqLowercase"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="• Al menos una minúscula"
@@ -202,6 +204,7 @@
                     android:textSize="11sp" />
 
                 <TextView
+                    android:id="@+id/tvReqNumber"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="• Al menos un número"
@@ -209,6 +212,7 @@
                     android:textSize="11sp" />
 
                 <TextView
+                    android:id="@+id/tvReqMinLength"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="• Mínimo 6 caracteres"
