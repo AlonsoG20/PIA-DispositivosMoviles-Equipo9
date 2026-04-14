@@ -3,6 +3,8 @@ package org.PIA.geofence
 import android.os.Bundle
 import android.view.View
 import android.widget.LinearLayout
+import android.widget.TextView
+import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.ViewCompat
@@ -14,6 +16,7 @@ import org.PIA.geofence.ui.login.SinRolFragment
 import org.PIA.geofence.ui.cuenta.CuentaFragment
 import org.PIA.geofence.ui.historial.HistorialFragment
 import org.PIA.geofence.ui.rutas.RutasFragment
+import org.PIA.geofence.ui.rutas.RutasDespachadorFragment
 import org.PIA.geofence.ui.gestion.GestionFragment
 import org.PIA.geofence.ui.reportes.ReportesFragment
 import org.PIA.geofence.ui.gestion.ControlDespachadorFragment
@@ -52,7 +55,17 @@ class MainActivity : AppCompatActivity() {
         checkUserRole()
 
         navCuenta.setOnClickListener { loadFragment(CuentaFragment(), it.id) }
-        navRutas.setOnClickListener { loadFragment(RutasFragment(), it.id) }
+        navRutas.setOnClickListener {
+            val userId = auth.currentUser?.uid ?: return@setOnClickListener
+            db.collection("usuarios").document(userId).get().addOnSuccessListener { doc ->
+                val rol = doc.getString("rol")
+                if (rol == "despachador") {
+                    loadFragment(RutasDespachadorFragment(), it.id)
+                } else {
+                    loadFragment(RutasFragment(), it.id)
+                }
+            }
+        }
         navHistorial.setOnClickListener { loadFragment(HistorialFragment(), it.id) }
         navGestion.setOnClickListener { 
             val userId = auth.currentUser?.uid ?: return@setOnClickListener
@@ -94,14 +107,20 @@ class MainActivity : AppCompatActivity() {
         navGestion.visibility = View.GONE
         navReportes.visibility = View.GONE
 
+        // Ajustar textos de la navbar para el despachador
+        val tvGestion = navbar.findViewById<TextView>(R.id.tvNavGestion)
+        val ivGestion = navbar.findViewById<ImageView>(R.id.ivNavGestion)
+
         when (rol) {
             "gerente" -> {
+                tvGestion.text = "Gestión"
                 navGestion.visibility = View.VISIBLE
                 navReportes.visibility = View.VISIBLE
                 loadFragment(GestionFragment(), R.id.nav_gestion)
             }
             "despachador" -> {
-                navGestion.visibility = View.VISIBLE // Usamos el mismo botón pero cargará ControlDespachadorFragment
+                tvGestion.text = "Control"
+                navGestion.visibility = View.VISIBLE
                 navRutas.visibility = View.VISIBLE
                 navHistorial.visibility = View.VISIBLE
                 loadFragment(ControlDespachadorFragment(), R.id.nav_gestion)
