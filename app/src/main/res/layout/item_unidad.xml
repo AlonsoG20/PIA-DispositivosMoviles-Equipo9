@@ -15,46 +15,98 @@
 
         <ImageView
             android:id="@+id/ivBus"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:src="@drawable/ic_rutas"
-            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:tint="@color/teal_primary" />
 
         <TextView
-            android:id="@+id/tvUnidadPlaca"
-            android:layout_width="wrap_content"
+            android:id="@+id/tvNumeroEconomico"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:text="ABC-1234"
-            android:textSize="18sp"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="8dp"
+            android:text="U-102"
+            android:textSize="19sp"
             android:textStyle="bold"
             android:textColor="@color/black"
             app:layout_constraintStart_toEndOf="@id/ivBus"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/chipEstado" />
 
         <TextView
-            android:id="@+id/tvUnidadModelo"
+            android:id="@+id/tvUnidadPlaca"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Mercedes Benz 2023"
-            android:textSize="14sp"
+            android:text="Placas: ABC-1234"
+            android:textSize="13sp"
             android:textColor="@color/gray_hint"
-            app:layout_constraintStart_toStartOf="@id/tvUnidadPlaca"
-            app:layout_constraintTop_toBottomOf="@id/tvUnidadPlaca" />
+            app:layout_constraintStart_toStartOf="@id/tvNumeroEconomico"
+            app:layout_constraintTop_toBottomOf="@id/tvNumeroEconomico" />
 
         <com.google.android.material.chip.Chip
             android:id="@+id/chipEstado"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Disponible"
-            android:textSize="12sp"
-            app:chipBackgroundColor="#E8F5E9"
-            app:layout_constraintBottom_toBottomOf="parent"
+            android:textSize="11sp"
+            app:chipMinTouchTargetSize="0dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/tvConductor"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Conductor: Juan Pérez"
+            android:textSize="13sp"
+            app:layout_constraintStart_toStartOf="@id/tvUnidadPlaca"
+            app:layout_constraintTop_toBottomOf="@id/tvUnidadPlaca" />
+
+        <View
+            android:id="@+id/divider"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="12dp"
+            android:background="#EEEEEE"
+            app:layout_constraintTop_toBottomOf="@id/tvConductor" />
+
+        <ImageView
+            android:id="@+id/ivLocation"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_marginTop="12dp"
+            android:src="@drawable/ic_location"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/divider"
+            app:tint="#757575" />
+
+        <TextView
+            android:id="@+id/tvUbicacion"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="19.4326, -99.1332"
+            android:textSize="12sp"
+            android:textColor="#757575"
+            app:layout_constraintBottom_toBottomOf="@id/ivLocation"
+            app:layout_constraintEnd_toStartOf="@+id/tvActualizacion"
+            app:layout_constraintStart_toEndOf="@id/ivLocation"
+            app:layout_constraintTop_toTopOf="@id/ivLocation" />
+
+        <TextView
+            android:id="@+id/tvActualizacion"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Hace 5 min"
+            android:textSize="12sp"
+            android:textColor="#9E9E9E"
+            app:layout_constraintBottom_toBottomOf="@id/tvUbicacion"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/tvUbicacion" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.cardview.widget.CardView>

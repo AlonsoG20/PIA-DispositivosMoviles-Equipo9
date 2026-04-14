@@ -1,5 +1,6 @@
 package org.PIA.geofence.ui.gestion
 
+import android.text.format.DateUtils
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -8,12 +9,16 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.chip.Chip
 import org.PIA.geofence.R
 import org.PIA.geofence.data.Unidad
+import java.util.Locale
 
 class UnidadAdapter(private var unidades: List<Unidad>) : RecyclerView.Adapter<UnidadAdapter.UnidadViewHolder>() {
 
     class UnidadViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvPlaca: TextView = view.findViewById(R.id.tvUnidadPlaca)
-        val tvModelo: TextView = view.findViewById(R.id.tvUnidadModelo)
+        val tvNumeroEconomico: TextView = view.findViewById(R.id.tvNumeroEconomico)
+        val tvConductor: TextView = view.findViewById(R.id.tvConductor)
+        val tvUbicacion: TextView = view.findViewById(R.id.tvUbicacion)
+        val tvActualizacion: TextView = view.findViewById(R.id.tvActualizacion)
         val chipEstado: Chip = view.findViewById(R.id.chipEstado)
     }
 
@@ -25,10 +30,25 @@ class UnidadAdapter(private var unidades: List<Unidad>) : RecyclerView.Adapter<U
     override fun onBindViewHolder(holder: UnidadViewHolder, position: Int) {
         val unidad = unidades[position]
         holder.tvPlaca.text = unidad.placa
-        holder.tvModelo.text = unidad.modelo
+        holder.tvNumeroEconomico.text = if (unidad.numeroEconomico.isNotEmpty()) "(#${unidad.numeroEconomico})" else ""
+        holder.tvConductor.text = "Conductor: ${unidad.conductorAsignado.ifEmpty { "Sin asignar" }}"
+
+        val geo = unidad.ultimaUbicacion
+        holder.tvUbicacion.text = if (geo != null) {
+            String.format(Locale.getDefault(), "%.4f, %.4f", geo.latitude, geo.longitude)
+        } else {
+            "Ubicación desconocida"
+        }
+
+        val timestamp = unidad.ultimaActualizacion
+        holder.tvActualizacion.text = if (timestamp != null) {
+            DateUtils.getRelativeTimeSpanString(timestamp.toDate().time)
+        } else {
+            "Sin datos"
+        }
+
         holder.chipEstado.text = unidad.estado
         
-        // Color según estado
         when (unidad.estado) {
             "Disponible" -> holder.chipEstado.setChipBackgroundColorResource(android.R.color.holo_green_light)
             "En ruta" -> holder.chipEstado.setChipBackgroundColorResource(android.R.color.holo_blue_light)

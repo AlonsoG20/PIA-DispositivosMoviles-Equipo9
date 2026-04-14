@@ -14,9 +14,9 @@ import org.PIA.geofence.ui.login.SinRolFragment
 import org.PIA.geofence.ui.cuenta.CuentaFragment
 import org.PIA.geofence.ui.historial.HistorialFragment
 import org.PIA.geofence.ui.rutas.RutasFragment
-// Estos fragments deben ser creados
 import org.PIA.geofence.ui.gestion.GestionFragment
 import org.PIA.geofence.ui.reportes.ReportesFragment
+import org.PIA.geofence.ui.gestion.ControlDespachadorFragment
 
 
 class MainActivity : AppCompatActivity() {
@@ -54,7 +54,17 @@ class MainActivity : AppCompatActivity() {
         navCuenta.setOnClickListener { loadFragment(CuentaFragment(), it.id) }
         navRutas.setOnClickListener { loadFragment(RutasFragment(), it.id) }
         navHistorial.setOnClickListener { loadFragment(HistorialFragment(), it.id) }
-        navGestion.setOnClickListener { loadFragment(GestionFragment(), it.id) }
+        navGestion.setOnClickListener { 
+            val userId = auth.currentUser?.uid ?: return@setOnClickListener
+            db.collection("usuarios").document(userId).get().addOnSuccessListener { doc ->
+                val rol = doc.getString("rol")
+                if (rol == "despachador") {
+                    loadFragment(ControlDespachadorFragment(), it.id)
+                } else {
+                    loadFragment(GestionFragment(), it.id)
+                }
+            }
+        }
         navReportes.setOnClickListener { loadFragment(ReportesFragment(), it.id) }
     }
 
@@ -77,25 +87,28 @@ class MainActivity : AppCompatActivity() {
     private fun setupUIByRole(rol: String) {
         navbar.visibility = View.VISIBLE
         
+        // Resetear visibilidades
+        navCuenta.visibility = View.VISIBLE
+        navRutas.visibility = View.GONE
+        navHistorial.visibility = View.GONE
+        navGestion.visibility = View.GONE
+        navReportes.visibility = View.GONE
+
         when (rol) {
             "gerente" -> {
-                navCuenta.visibility = View.VISIBLE
                 navGestion.visibility = View.VISIBLE
                 navReportes.visibility = View.VISIBLE
-                
-                navRutas.visibility = View.GONE
-                navHistorial.visibility = View.GONE
-                
                 loadFragment(GestionFragment(), R.id.nav_gestion)
             }
-            "chofer", "despachador" -> {
-                navCuenta.visibility = View.VISIBLE
+            "despachador" -> {
+                navGestion.visibility = View.VISIBLE // Usamos el mismo botón pero cargará ControlDespachadorFragment
                 navRutas.visibility = View.VISIBLE
                 navHistorial.visibility = View.VISIBLE
-                
-                navGestion.visibility = View.GONE
-                navReportes.visibility = View.GONE
-                
+                loadFragment(ControlDespachadorFragment(), R.id.nav_gestion)
+            }
+            "chofer" -> {
+                navRutas.visibility = View.VISIBLE
+                navHistorial.visibility = View.VISIBLE
                 loadFragment(RutasFragment(), R.id.nav_rutas)
             }
             else -> {

@@ -122,8 +122,13 @@ class GestionFragment : Fragment() {
     }
 
     private fun assignRole(user: User, newRole: String) {
+        val updates = mutableMapOf<String, Any>("rol" to newRole)
+        if (newRole == "chofer") {
+            updates["estado"] = "0"
+        }
+
         db.collection("usuarios").document(user.id)
-            .update("rol", newRole)
+            .update(updates)
             .addOnSuccessListener {
                 Toast.makeText(context, "Acceso concedido como $newRole", Toast.LENGTH_SHORT).show()
             }
