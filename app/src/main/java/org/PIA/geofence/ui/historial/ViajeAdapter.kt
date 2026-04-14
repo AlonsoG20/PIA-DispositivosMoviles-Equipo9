@@ -16,6 +16,8 @@ class ViajeAdapter(private var viajes: List<Viaje>) : RecyclerView.Adapter<Viaje
         val tvTitulo: TextView = view.findViewById(R.id.tvTitulo)
         val tvDistancia: TextView = view.findViewById(R.id.tvDistancia)
         val tvFecha: TextView = view.findViewById(R.id.tvFecha)
+        val tvFechaFin: TextView = view.findViewById(R.id.tvFechaFin)
+        val tvDetalleChofer: TextView = view.findViewById(R.id.tvDetalleChofer)
         val tvCosto: TextView = view.findViewById(R.id.tvCosto)
         val tvCombustible: TextView = view.findViewById(R.id.tvCombustible)
     }
@@ -29,11 +31,15 @@ class ViajeAdapter(private var viajes: List<Viaje>) : RecyclerView.Adapter<Viaje
         val viaje = viajes[position]
         holder.tvTitulo.text = viaje.titulo
         holder.tvDistancia.text = viaje.distancia
-        holder.tvCosto.text = "costo: $${viaje.costo}"
-        holder.tvCombustible.text = "combustible: ${viaje.combustible}L"
+        holder.tvCosto.text = "Costo: $${viaje.costo}"
+        holder.tvCombustible.text = "Combustible: ${viaje.combustible}L"
+        
+        holder.tvDetalleChofer.text = "Unidad: ${viaje.placaUnidad.ifEmpty { "---" }} | Chofer: ${viaje.nombreChofer.ifEmpty { "---" }}"
 
         val sdf = SimpleDateFormat("dd/MM/yy HH:mm", Locale.getDefault())
-        holder.tvFecha.text = viaje.fecha?.toDate()?.let { sdf.format(it) } ?: "--/--/--"
+        
+        holder.tvFecha.text = "Inicio: " + (viaje.fechaInicio?.toDate()?.let { sdf.format(it) } ?: "--/--/--")
+        holder.tvFechaFin.text = "Fin: " + (viaje.fechaFin?.toDate()?.let { sdf.format(it) } ?: "En curso")
     }
 
     override fun getItemCount() = viajes.size

@@ -1,6 +1,7 @@
 package org.PIA.geofence.ui.historial
 
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.TextView
 import androidx.fragment.app.Fragment
@@ -43,34 +44,58 @@ class HistorialFragment : Fragment(R.layout.fragment_historial) {
     private fun cargarHistorial() {
         val userId = auth.currentUser?.uid ?: return
 
-        db.collection("viajes")
-            .whereEqualTo("userId", userId)
-            .orderBy("fecha", Query.Direction.DESCENDING)
-            .addSnapshotListener { value, error ->
-                if (error != null) return@addSnapshotListener
+        db.collection("usuarios").document(userId).get().addOnSuccessListener { userDoc ->
+            val rol = userDoc.getString("rol") ?: ""
+            Log.d("Historial", "Usuario rol: $rol")
+
+            val collectionRef = db.collection("viajes")
+            
+            val query = if (rol == "despachador") {
+                collectionRef.whereEqualTo("despachadorId", userId)
+            } else {
+                collectionRef.whereEqualTo("userId", userId)
+            }
+
+            // Quitamos el orderBy temporalmente para verificar si el problema es el índice compuesto
+            query.addSnapshotListener { value, error ->
+                if (error != null) {
+                    Log.e("Historial", "Error en query: ${error.message}")
+                    return@addSnapshotListener
+                }
 
                 val listaViajes = value?.toObjects(Viaje::class.java) ?: emptyList()
-                adapter.updateData(listaViajes)
+                Log.d("Historial", "Viajes recuperados: ${listaViajes.size}")
 
-                // Actualizar contador de hoy
-                val hoy = Calendar.getInstance().apply {
-                    set(Calendar.HOUR_OF_DAY, 0)
-                    set(Calendar.MINUTE, 0)
-                    set(Calendar.SECOND, 0)
-                    set(Calendar.MILLISECOND, 0)
-                }.time
+                // Ordenar manualmente en Kotlin para evitar problemas de índices en Firestore por ahora
+                val listaOrdenada = listaViajes.sortedByDescending { it.fechaInicio }
+                adapter.updateData(listaOrdenada)
 
-                val viajesHoy = listaViajes.count { 
-                    it.fecha?.toDate()?.after(hoy) == true 
-                }
+                val conteoHoy = contarHoy(listaOrdenada)
 
-                tvContadorHoy.text = "Viajes tomados hoy: $viajesHoy"
-                
-                if (listaViajes.isEmpty()) {
-                    tvEmpty.visibility = View.VISIBLE
+                if (rol == "despachador") {
+                    tvContadorHoy.text = "Viajes asignados hoy: $conteoHoy"
+                    tvEmpty.text = "Aún no has asignado rutas"
                 } else {
-                    tvEmpty.visibility = View.GONE
+                    tvContadorHoy.text = "Viajes realizados hoy: $conteoHoy"
+                    tvEmpty.text = "Aún no tienes viajes registrados"
                 }
+
+                tvEmpty.visibility = if (listaOrdenada.isEmpty()) View.VISIBLE else View.GONE
             }
+        }
+    }
+
+    private fun contarHoy(lista: List<Viaje>): Int {
+        val hoy = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.time
+
+        return lista.count { viaje ->
+            val fecha = viaje.fechaInicio?.toDate()
+            fecha != null && !fecha.before(hoy)
+        }
     }
 }
