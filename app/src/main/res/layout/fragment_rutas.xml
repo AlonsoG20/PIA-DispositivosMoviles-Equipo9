@@ -17,6 +17,35 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
 
+    <!-- Selector de Ruta (Solo visible si no ha iniciado) -->
+    <com.google.android.material.button.MaterialButtonToggleGroup
+        android:id="@+id/toggleRouteGroup"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        app:singleSelection="true"
+        app:selectionRequired="true"
+        app:checkedButton="@+id/btnRouteA"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <Button
+            android:id="@+id/btnRouteA"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Ruta Rápida"/>
+
+        <Button
+            android:id="@+id/btnRouteB"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Ruta Alterna"/>
+
+    </com.google.android.material.button.MaterialButtonToggleGroup>
+
     <!-- Tarjeta inferior con estado y botón -->
     <androidx.cardview.widget.CardView
         android:id="@+id/cardEstado"

@@ -18,6 +18,7 @@ import com.google.android.gms.maps.model.*
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.GeoPoint
 import com.google.firebase.firestore.Query
 import com.google.maps.DirectionsApi
 import com.google.maps.GeoApiContext
@@ -50,9 +51,7 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
     private val apiKey = "AIzaSyAjjiNfvcx-3pSKpNULTceVeX46YxLfItc"
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        val view = inflater.inflate(R.layout.fragment_rutas_despachador, container, false)
-        // Añadir dinámicamente el TextView de "vacío" si no existe en el XML
-        return view
+        return inflater.inflate(R.layout.fragment_rutas_despachador, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -66,9 +65,9 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
         tvChoferInfo = view.findViewById(R.id.tvChoferSeleccionadoInfo)
         btnEnviar = view.findViewById(R.id.btnEnviarRutaFinal)
         
-        // Buscamos o creamos un mensaje de lista vacía
+        // Mensaje de lista vacía
         tvEmptyChoferes = TextView(context).apply {
-            text = "No hay choferes disponibles en este momento"
+            text = "No hay choferes disponibles"
             visibility = View.GONE
             gravity = android.view.Gravity.CENTER
             setPadding(0, 50, 0, 0)
@@ -95,29 +94,20 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
     }
 
     private fun cargarChoferesDisponibles() {
-        Log.d("Despacho", "Iniciando carga de choferes...")
-        
         db.collection("usuarios")
             .whereEqualTo("rol", "chofer")
             .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    Log.e("Despacho", "Error en Firebase: ${error.message}")
-                    return@addSnapshotListener
-                }
+                if (error != null) return@addSnapshotListener
 
                 val todosLosChoferes = snapshot?.toObjects(User::class.java) ?: emptyList()
-                // Filtramos manualmente por estado "0" para evitar problemas de tipos en la query
                 val disponibles = todosLosChoferes.filter { it.estado == "0" }
                 
-                Log.d("Despacho", "Total choferes: ${todosLosChoferes.size}, Disponibles: ${disponibles.size}")
-
                 if (disponibles.isEmpty()) {
                     tvEmptyChoferes.visibility = View.VISIBLE
                     rvChoferes.visibility = View.GONE
                 } else {
                     tvEmptyChoferes.visibility = View.GONE
                     rvChoferes.visibility = View.VISIBLE
-                    
                     val adapter = object : RecyclerView.Adapter<ChoferViewHolder>() {
                         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ChoferViewHolder {
                             val v = LayoutInflater.from(parent.context).inflate(R.layout.item_chofer_simple, parent, false)
@@ -127,10 +117,6 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
                             val user = disponibles[position]
                             holder.tvNombre.text = user.nombreCompleto
                             holder.tvEstado.text = "Disponible"
-                            holder.tvEstado.setTextColor(resources.getColor(android.R.color.holo_green_dark, null))
-                            holder.vIndicator.backgroundTintList = android.content.res.ColorStateList.valueOf(
-                                resources.getColor(android.R.color.holo_green_dark, null)
-                            )
                             holder.itemView.setOnClickListener { seleccionarChofer(user) }
                         }
                         override fun getItemCount() = disponibles.size
@@ -214,8 +200,9 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
             return
         }
 
-        val puntosMap = paradasSeleccionadas.map { 
-            hashMapOf("lat" to it.position.latitude, "lng" to it.position.longitude, "nombre" to it.title)
+        // CORRECCIÓN: Usamos GeoPoint y el nombre de campo correcto para que el chofer lo reciba
+        val listaGeoPoints = paradasSeleccionadas.map {
+            GeoPoint(it.position.latitude, it.position.longitude)
         }
 
         val viaje = hashMapOf(
@@ -224,8 +211,9 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
             "nombreChofer" to choferSeleccionado?.nombreCompleto,
             "titulo" to "Ruta Asignada ${SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())}",
             "fechaInicio" to Timestamp.now(),
+            "fechaFin" to null, // Importante para el filtro del chofer
             "estado" to "pendiente",
-            "puntos" to puntosMap,
+            "puntosParada" to listaGeoPoints, // Nombre de campo corregido
             "paradas" to paradasSeleccionadas.size
         )
 
