@@ -126,8 +126,10 @@ class ControlDespachadorFragment : Fragment() {
             .whereEqualTo("rol", "chofer")
             .addSnapshotListener { snapshot, _ ->
                 val list = snapshot?.toObjects(User::class.java) ?: emptyList()
-                adapterChoferes.updateChoferes(list)
-                tvEmptyChoferes.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
+                // FILTRO: En CONTROL, el Despachador ve a los laborando (0 y 1), pero NO a los inactivos (2)
+                val laborando = list.filter { it.estado != "2" }
+                adapterChoferes.updateChoferes(laborando)
+                tvEmptyChoferes.visibility = if (laborando.isEmpty()) View.VISIBLE else View.GONE
             }
     }
 

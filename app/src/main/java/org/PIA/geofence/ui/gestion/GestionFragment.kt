@@ -24,7 +24,8 @@ class GestionFragment : Fragment() {
     
     private lateinit var adapterSinRol: UsersSinRolAdapter
     private lateinit var adapterUnidades: UnidadAdapter
-    private lateinit var adapterPersonal: UsersSinRolAdapter
+    private lateinit var adapterPersonal: PersonalGestionAdapter
+    private lateinit var adapterInactivos: PersonalGestionAdapter
 
     private var sinRolListener: ListenerRegistration? = null
     private var unidadesListener: ListenerRegistration? = null
@@ -33,6 +34,7 @@ class GestionFragment : Fragment() {
     private var isSinRolExpanded = false
     private var isUnidadesExpanded = false
     private var isPersonalExpanded = false
+    private var isInactivosExpanded = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -82,12 +84,16 @@ class GestionFragment : Fragment() {
             iconUnidades.setImageResource(if (isUnidadesExpanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more)
         }
 
-        // 3. Personal
+        // 3. Personal Registrado (Activo)
         val headerPersonal = view.findViewById<LinearLayout>(R.id.layoutHeaderPersonal)
         val rvPersonal = view.findViewById<RecyclerView>(R.id.rvPersonal)
         val iconPersonal = view.findViewById<ImageView>(R.id.ivExpandIconPersonal)
 
-        adapterPersonal = UsersSinRolAdapter(emptyList()) { _, _ -> }
+        adapterPersonal = PersonalGestionAdapter(
+            emptyList(),
+            { user -> toggleUserStatus(user) },
+            { user, newRole -> changeUserRole(user, newRole) }
+        )
         rvPersonal.layoutManager = LinearLayoutManager(context)
         rvPersonal.adapter = adapterPersonal
 
@@ -95,6 +101,25 @@ class GestionFragment : Fragment() {
             isPersonalExpanded = !isPersonalExpanded
             rvPersonal.visibility = if (isPersonalExpanded) View.VISIBLE else View.GONE
             iconPersonal.setImageResource(if (isPersonalExpanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more)
+        }
+
+        // 4. Personal Inactivo
+        val headerInactivos = view.findViewById<LinearLayout>(R.id.layoutHeaderInactivos)
+        val rvInactivos = view.findViewById<RecyclerView>(R.id.rvChoferesInactivos)
+        val iconInactivos = view.findViewById<ImageView>(R.id.ivExpandIconInactivos)
+
+        adapterInactivos = PersonalGestionAdapter(
+            emptyList(),
+            { user -> toggleUserStatus(user) },
+            { user, newRole -> changeUserRole(user, newRole) }
+        )
+        rvInactivos.layoutManager = LinearLayoutManager(context)
+        rvInactivos.adapter = adapterInactivos
+
+        headerInactivos.setOnClickListener {
+            isInactivosExpanded = !isInactivosExpanded
+            rvInactivos.visibility = if (isInactivosExpanded) View.VISIBLE else View.GONE
+            iconInactivos.setImageResource(if (isInactivosExpanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more)
         }
     }
 
@@ -117,20 +142,53 @@ class GestionFragment : Fragment() {
             .whereIn("rol", listOf("chofer", "despachador"))
             .addSnapshotListener { snapshot, _ ->
                 val list = snapshot?.toObjects(User::class.java) ?: emptyList()
-                adapterPersonal.updateUsers(list)
+                
+                // Personal Activo (Estado != "2")
+                val activos = list.filter { it.estado != "2" }
+                adapterPersonal.updateUsers(activos)
+                
+                // Personal Inactivo (Estado == "2")
+                val inactivos = list.filter { it.estado == "2" }
+                adapterInactivos.updateUsers(inactivos)
+            }
+    }
+
+    private fun toggleUserStatus(user: User) {
+        // "2" es Fuera de Turno. Cambiamos a "0" (Disponible) o viceversa.
+        val newEstado = if (user.estado == "2") "0" else "2"
+        
+        db.collection("usuarios").document(user.id)
+            .update("estado", newEstado)
+            .addOnSuccessListener {
+                val msg = if (newEstado == "2") "${user.nombre} ahora está Fuera de Turno" else "${user.nombre} ha entrado en Turno"
+                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+            }
+            .addOnFailureListener {
+                Toast.makeText(context, "Error al actualizar turno", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    private fun changeUserRole(user: User, newRole: String) {
+        db.collection("usuarios").document(user.id)
+            .update("rol", newRole)
+            .addOnSuccessListener {
+                Toast.makeText(context, "Rol de ${user.nombre} cambiado a ${newRole.replaceFirstChar { it.uppercase() }}", Toast.LENGTH_SHORT).show()
+            }
+            .addOnFailureListener {
+                Toast.makeText(context, "Error al cambiar rol", Toast.LENGTH_SHORT).show()
             }
     }
 
     private fun assignRole(user: User, newRole: String) {
         val updates = mutableMapOf<String, Any>("rol" to newRole)
         if (newRole == "chofer") {
-            updates["estado"] = "0"
+            updates["estado"] = "0" // Por defecto disponible al asignar rol
         }
 
         db.collection("usuarios").document(user.id)
             .update(updates)
             .addOnSuccessListener {
-                Toast.makeText(context, "Acceso concedido como $newRole", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Rol asignado con éxito", Toast.LENGTH_SHORT).show()
             }
     }
 

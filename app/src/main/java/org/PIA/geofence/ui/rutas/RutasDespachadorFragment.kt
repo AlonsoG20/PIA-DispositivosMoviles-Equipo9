@@ -100,6 +100,7 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
                 if (error != null) return@addSnapshotListener
 
                 val todosLosChoferes = snapshot?.toObjects(User::class.java) ?: emptyList()
+                // FILTRO: En el apartado de RUTAS, el Despachador SOLO ve a los choferes disponibles (0)
                 val disponibles = todosLosChoferes.filter { it.estado == "0" }
                 
                 if (disponibles.isEmpty()) {
@@ -117,6 +118,10 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
                             val user = disponibles[position]
                             holder.tvNombre.text = user.nombreCompleto
                             holder.tvEstado.text = "Disponible"
+                            holder.tvEstado.setTextColor(resources.getColor(android.R.color.holo_green_dark, null))
+                            holder.vIndicator.backgroundTintList = android.content.res.ColorStateList.valueOf(
+                                resources.getColor(android.R.color.holo_green_dark, null)
+                            )
                             holder.itemView.setOnClickListener { seleccionarChofer(user) }
                         }
                         override fun getItemCount() = disponibles.size
@@ -187,7 +192,7 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
                     val path = result.routes[0].overviewPolyline.decodePath().map { LatLng(it.lat, it.lng) }
                     activity?.runOnUiThread {
                         poliLineaRuta?.remove()
-                        poliLineaRuta = mMap.addPolyline(PolylineOptions().addAll(path).color(Color.parseColor("#4CAF9E")).width(12f))
+                        poliLineaRuta = mMap.addPolyline(PolylineOptions().addAll(path).color(Color.parseColor("#4CAF50")).width(12f))
                     }
                 }
             } catch (e: Exception) { Log.e("Despacho", "Error ruta: ${e.message}") }
@@ -200,7 +205,6 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
             return
         }
 
-        // CORRECCIÓN: Usamos GeoPoint y el nombre de campo correcto para que el chofer lo reciba
         val listaGeoPoints = paradasSeleccionadas.map {
             GeoPoint(it.position.latitude, it.position.longitude)
         }
@@ -211,9 +215,9 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
             "nombreChofer" to choferSeleccionado?.nombreCompleto,
             "titulo" to "Ruta Asignada ${SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())}",
             "fechaInicio" to Timestamp.now(),
-            "fechaFin" to null, // Importante para el filtro del chofer
+            "fechaFin" to null,
             "estado" to "pendiente",
-            "puntosParada" to listaGeoPoints, // Nombre de campo corregido
+            "puntosParada" to listaGeoPoints,
             "paradas" to paradasSeleccionadas.size
         )
 

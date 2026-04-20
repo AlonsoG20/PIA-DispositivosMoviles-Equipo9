@@ -25,23 +25,34 @@ class ChoferAdapter(private var choferes: List<User>) : RecyclerView.Adapter<Cho
         val chofer = choferes[position]
         holder.tvNombre.text = chofer.nombreCompleto
         
-        // "0" = Disponible, "1" = Ocupado
+        // "0" = Disponible, "1" = Ocupado, "2" = Inactivo
         val estadoVal = chofer.estado ?: "0" 
         
-        if (estadoVal == "1") {
-            holder.tvEstado.text = "Ocupado"
-            holder.tvEstado.setTextColor(holder.itemView.context.getColor(android.R.color.holo_red_dark))
-            holder.vIndicator.setBackgroundResource(R.drawable.circle_background)
-            holder.vIndicator.backgroundTintList = android.content.res.ColorStateList.valueOf(
-                holder.itemView.context.getColor(android.R.color.holo_red_dark)
-            )
-        } else {
-            holder.tvEstado.text = "Disponible"
-            holder.tvEstado.setTextColor(holder.itemView.context.getColor(android.R.color.holo_green_dark))
-            holder.vIndicator.setBackgroundResource(R.drawable.circle_background)
-            holder.vIndicator.backgroundTintList = android.content.res.ColorStateList.valueOf(
-                holder.itemView.context.getColor(android.R.color.holo_green_dark)
-            )
+        when (estadoVal) {
+            "1" -> {
+                holder.tvEstado.text = "Ocupado"
+                holder.tvEstado.setTextColor(holder.itemView.context.getColor(android.R.color.holo_red_dark))
+                holder.vIndicator.setBackgroundResource(R.drawable.circle_background)
+                holder.vIndicator.backgroundTintList = android.content.res.ColorStateList.valueOf(
+                    holder.itemView.context.getColor(android.R.color.holo_red_dark)
+                )
+            }
+            "2" -> {
+                holder.tvEstado.text = "Inactivo"
+                holder.tvEstado.setTextColor(holder.itemView.context.getColor(android.R.color.darker_gray))
+                holder.vIndicator.setBackgroundResource(R.drawable.circle_background)
+                holder.vIndicator.backgroundTintList = android.content.res.ColorStateList.valueOf(
+                    holder.itemView.context.getColor(android.R.color.darker_gray)
+                )
+            }
+            else -> {
+                holder.tvEstado.text = "Disponible"
+                holder.tvEstado.setTextColor(holder.itemView.context.getColor(android.R.color.holo_green_dark))
+                holder.vIndicator.setBackgroundResource(R.drawable.circle_background)
+                holder.vIndicator.backgroundTintList = android.content.res.ColorStateList.valueOf(
+                    holder.itemView.context.getColor(android.R.color.holo_green_dark)
+                )
+            }
         }
     }
 
