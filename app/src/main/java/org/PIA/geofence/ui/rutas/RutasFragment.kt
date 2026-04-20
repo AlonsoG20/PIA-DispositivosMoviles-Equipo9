@@ -79,15 +79,12 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
         mapFragment.getMapAsync(this)
 
         btnIniciarRuta.setOnClickListener {
-            if (!rutaIniciada) {
-                iniciarRuta()
-            } else {
-                pausarRuta()
-            }
+            if (!rutaIniciada) iniciarRuta() else pausarRuta()
         }
 
         btnAbandonarRuta.setOnClickListener {
-            if (tvEstadoRuta.text == "Viaje Finalizado" || tvEstadoRuta.text == "Ruta Interrumpida" || tvEstadoRuta.text == "Pantalla limpia") {
+            val status = tvEstadoRuta.text.toString()
+            if (status == "Viaje Finalizado" || status == "Ruta Interrumpida" || status == "Sin asignar ninguna ruta") {
                 limpiarPantallaTotalmente()
             } else {
                 terminarRuta(true)
@@ -107,7 +104,7 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
             if (!rutaIniciada && ultimoIndiceRecorrido == 0) {
                 puntosCaminoSeleccionado = if (polyline == poliLineaRapida) puntosRutaRapida else puntosRutaAlterna
                 actualizarEstilos()
-                Toast.makeText(context, "Camino seleccionado", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Trayecto seleccionado", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -144,66 +141,75 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
             marker?.let { markersParadas.add(it) }
         }
 
-        trazarRutasDiferentes(paradas)
+        trazarRutasRealmenteDiferentes(paradas)
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(paradas[0], 13f))
         btnIniciarRuta.isEnabled = true
         btnAbandonarRuta.visibility = View.VISIBLE
         btnAbandonarRuta.text = "Abandonar"
         tvEstadoRuta.text = "Viaje asignado: ${viaje.titulo}"
+        tvParadaActual.text = "Toca un camino para elegirlo"
     }
 
-    private fun trazarRutasDiferentes(paradas: List<LatLng>) {
+    private fun trazarRutasRealmenteDiferentes(paradas: List<LatLng>) {
         val geoContext = GeoApiContext.Builder().apiKey(apiKey).build()
         val origin = "${paradas.first().latitude},${paradas.first().longitude}"
         val destination = "${paradas.last().latitude},${paradas.last().longitude}"
-        val waypoints = if (paradas.size > 2) {
-            paradas.subList(1, paradas.size - 1).map { com.google.maps.model.LatLng(it.latitude, it.longitude) }.toTypedArray()
+        
+        val waypointsNormal = if (paradas.size > 2) {
+            paradas.subList(1, paradas.size - 1).map { "${it.latitude},${it.longitude}" }.toTypedArray()
         } else emptyArray()
 
         Thread {
             try {
-                val res1 = DirectionsApi.newRequest(geoContext)
-                    .mode(TravelMode.DRIVING)
-                    .origin(origin).destination(destination).waypoints(*waypoints)
-                    .departureTime(Instant.now())
-                    .alternatives(true).await()
+                // 1. RUTA VERDE: Estándar rápida
+                val resA = DirectionsApi.newRequest(geoContext)
+                    .mode(TravelMode.DRIVING).origin(origin).destination(destination)
+                    .waypoints(*waypointsNormal).departureTime(Instant.now()).await()
 
-                if (res1.routes.isNotEmpty()) {
-                    activity?.runOnUiThread {
-                        puntosRutaRapida = res1.routes[0].overviewPolyline.decodePath().map { LatLng(it.lat, it.lng) }.toMutableList()
-                        puntosCaminoSeleccionado = puntosRutaRapida
-
-                        if (res1.routes.size > 1) {
-                            puntosRutaAlterna = res1.routes[1].overviewPolyline.decodePath().map { LatLng(it.lat, it.lng) }.toMutableList()
-                            dibujarLineas()
-                        } else {
-                            forzarRutaAlternativa(geoContext, origin, destination, waypoints)
+                if (resA.routes.isNotEmpty()) {
+                    val pathA = resA.routes[0].overviewPolyline.decodePath().map { LatLng(it.lat, it.lng) }
+                    
+                    // 2. RUTA AZUL: Con micro-desvíos precisos entre paradas
+                    val waypointsForced = mutableListOf<String>()
+                    
+                    for (i in 0 until paradas.size - 1) {
+                        val p1 = paradas[i]
+                        val p2 = paradas[i+1]
+                        
+                        if (i > 0) waypointsForced.add("${p1.latitude},${p1.longitude}")
+                        
+                        // Calculamos un desvío lateral pequeño (~400 metros) en cada segmento
+                        val vLat = p2.latitude - p1.latitude
+                        val vLng = p2.longitude - p1.longitude
+                        val dist = Math.sqrt(vLat * vLat + vLng * vLng)
+                        
+                        if (dist > 0.002) { 
+                            val offsetScale = 0.0035 // Desvío sutil pero suficiente para cambiar de calle
+                            val midLat = (p1.latitude + p2.latitude) / 2 + (-vLng / dist * offsetScale)
+                            val midLng = (p1.longitude + p2.longitude) / 2 + (vLat / dist * offsetScale)
+                            waypointsForced.add("via:$midLat,$midLng")
                         }
+                    }
+
+                    val resB = DirectionsApi.newRequest(geoContext)
+                        .mode(TravelMode.DRIVING).origin(origin).destination(destination)
+                        .waypoints(*waypointsForced.toTypedArray())
+                        .avoid(DirectionsApi.RouteRestriction.HIGHWAYS)
+                        .departureTime(Instant.now()).await()
+
+                    activity?.runOnUiThread {
+                        puntosRutaRapida = pathA.toMutableList()
+                        puntosRutaAlterna = if (resB.routes.isNotEmpty()) {
+                            resB.routes[0].overviewPolyline.decodePath().map { LatLng(it.lat, it.lng) }.toMutableList()
+                        } else {
+                            puntosRutaRapida.toMutableList()
+                        }
+                        
+                        puntosCaminoSeleccionado = puntosRutaRapida
+                        dibujarLineas()
                     }
                 }
             } catch (e: Exception) { e.printStackTrace() }
-        }.start()
-    }
-
-    private fun forzarRutaAlternativa(ctx: GeoApiContext, start: String, end: String, stops: Array<com.google.maps.model.LatLng>) {
-        Thread {
-            try {
-                val res2 = DirectionsApi.newRequest(ctx).mode(TravelMode.DRIVING)
-                    .origin(start).destination(end).waypoints(*stops)
-                    .avoid(DirectionsApi.RouteRestriction.HIGHWAYS, DirectionsApi.RouteRestriction.TOLLS)
-                    .departureTime(Instant.now()).await()
-
-                if (res2.routes.isNotEmpty()) {
-                    activity?.runOnUiThread {
-                        puntosRutaAlterna = res2.routes[0].overviewPolyline.decodePath().map { LatLng(it.lat, it.lng) }.toMutableList()
-                        dibujarLineas()
-                    }
-                } else {
-                    activity?.runOnUiThread { dibujarLineas() }
-                }
-            } catch (e: Exception) { 
-                activity?.runOnUiThread { dibujarLineas() }
-            }
         }.start()
     }
 
@@ -221,17 +227,22 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
 
         if (puntosCaminoSeleccionado == puntosRutaRapida) {
             poliLineaRapida?.apply { color = colorVerde; width = 12f; zIndex = 10f; pattern = null }
-            poliLineaAlterna?.apply { color = ColorUtils.setAlphaComponent(colorAzul, 180); width = 24f; zIndex = 5f; pattern = PATTERN_ALTERNATE }
+            poliLineaAlterna?.apply { 
+                color = ColorUtils.setAlphaComponent(colorAzul, 200)
+                width = 24f; zIndex = 5f; pattern = PATTERN_ALTERNATE 
+            }
         } else {
             poliLineaAlterna?.apply { color = colorAzul; width = 12f; zIndex = 10f; pattern = null }
-            poliLineaRapida?.apply { color = ColorUtils.setAlphaComponent(colorVerde, 180); width = 24f; zIndex = 5f; pattern = PATTERN_ALTERNATE }
+            poliLineaRapida?.apply { 
+                color = ColorUtils.setAlphaComponent(colorVerde, 200)
+                width = 24f; zIndex = 5f; pattern = PATTERN_ALTERNATE 
+            }
         }
     }
 
     private fun iniciarRuta() {
         if (puntosCaminoSeleccionado.isEmpty()) return
         rutaIniciada = true
-        
         btnIniciarRuta.text = "Pausar Ruta"
         tvEstadoRuta.text = "En ruta..."
         btnAbandonarRuta.visibility = View.GONE
@@ -240,7 +251,6 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
             markerVehiculo = mMap.addMarker(MarkerOptions().position(puntosCaminoSeleccionado[ultimoIndiceRecorrido])
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)).anchor(0.5f, 0.5f).zIndex(20f))
         }
-
         animar(ultimoIndiceRecorrido)
     }
 
@@ -250,7 +260,6 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
         btnIniciarRuta.text = "Reanudar Ruta"
         tvEstadoRuta.text = "Ruta pausada"
         btnAbandonarRuta.visibility = View.VISIBLE
-        btnAbandonarRuta.text = "Abandonar"
     }
 
     private fun animar(idx: Int) {
@@ -292,41 +301,23 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
     private fun terminarRuta(guardar: Boolean) {
         rutaIniciada = false
         animatorVehiculo?.cancel()
-        
         val currentPos = markerVehiculo?.position
-        
-        // Limpiar polilíneas activas y marcador de vehículo
         poliLineaRapida?.remove()
         poliLineaAlterna?.remove()
         markerVehiculo?.remove()
         markerVehiculo = null
 
-        // Dibujar resumen visual si se inició el camino
         if (currentPos != null && puntosCaminoSeleccionado.isNotEmpty()) {
             val traveledPoints = puntosCaminoSeleccionado.subList(0, ultimoIndiceRecorrido + 1).toMutableList()
             traveledPoints.add(currentPos)
-            
             val remainingPoints = mutableListOf(currentPos)
             remainingPoints.addAll(puntosCaminoSeleccionado.subList(ultimoIndiceRecorrido + 1, puntosCaminoSeleccionado.size))
-            
             val colorActual = if (puntosCaminoSeleccionado == puntosRutaRapida) Color.parseColor("#4CAF50") else Color.parseColor("#2196F3")
-            
-            // Camino recorrido (Color original)
-            if (traveledPoints.size >= 2) {
-                mMap.addPolyline(PolylineOptions().addAll(traveledPoints).color(colorActual).width(12f).zIndex(10f))
-            }
-            // Camino faltante (Gris)
-            if (remainingPoints.size >= 2) {
-                mMap.addPolyline(PolylineOptions().addAll(remainingPoints).color(Color.LTGRAY).width(12f).zIndex(5f))
-            }
+            if (traveledPoints.size >= 2) mMap.addPolyline(PolylineOptions().addAll(traveledPoints).color(colorActual).width(12f).zIndex(10f))
+            if (remainingPoints.size >= 2) mMap.addPolyline(PolylineOptions().addAll(remainingPoints).color(Color.LTGRAY).width(12f).zIndex(5f))
         }
 
-        // Paradas faltantes en gris
-        markersParadas.forEachIndexed { index, marker ->
-            if (index >= paradasCompletadas) {
-                marker.alpha = 0.4f
-            }
-        }
+        markersParadas.forEachIndexed { index, marker -> if (index >= paradasCompletadas) marker.alpha = 0.4f }
         
         if (guardar && viajeActivo != null) {
             db.collection("viajes").document(viajeActivo!!.id).update("fechaFin", com.google.firebase.Timestamp.now())
@@ -335,12 +326,8 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
         } else {
             tvEstadoRuta.text = "Ruta Interrumpida"
         }
-        
-        btnIniciarRuta.text = "Iniciar Ruta"
         btnIniciarRuta.isEnabled = false
-        btnAbandonarRuta.visibility = View.VISIBLE
         btnAbandonarRuta.text = "Salir"
-        Toast.makeText(context, "Ruta finalizada definitivamente.", Toast.LENGTH_LONG).show()
     }
 
     private fun actualizarEstadoDisponible() {
@@ -360,17 +347,13 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
         rutaIniciada = false
         animatorVehiculo?.cancel()
         markerVehiculo = null
-        
         actualizarEstadoDisponible()
-        
         btnIniciarRuta.isEnabled = false
         btnIniciarRuta.text = "Iniciar Ruta"
         btnAbandonarRuta.visibility = View.GONE
-        
-        tvEstadoRuta.text = "Sin asignar ruta"
+        tvEstadoRuta.text = "Sin asignar ninguna ruta"
         tvParadaActual.text = ""
         tvParadasCompletadas.text = "0/0 paradas completadas"
-        
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(MONTERREY, 12f))
     }
 
