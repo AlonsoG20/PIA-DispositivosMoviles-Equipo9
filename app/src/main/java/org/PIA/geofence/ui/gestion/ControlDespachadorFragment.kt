@@ -8,9 +8,11 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.Timestamp
@@ -32,6 +34,13 @@ class ControlDespachadorFragment : Fragment() {
     private lateinit var tvEmptyFlota: TextView
     private lateinit var tvEmptyChoferes: TextView
     private lateinit var tvEmptyPOI: TextView
+
+    private lateinit var btnFilterAll: MaterialButton
+    private lateinit var btnFilterDisponible: MaterialButton
+    private lateinit var btnFilterOcupado: MaterialButton
+
+    private var allChoferes: List<User> = emptyList()
+    private var currentFilter: String = "ALL" // "ALL", "0", "1"
 
     private var unidadesListener: ListenerRegistration? = null
     private var choferesListener: ListenerRegistration? = null
@@ -55,6 +64,10 @@ class ControlDespachadorFragment : Fragment() {
         
         val btnAddUnidad = view.findViewById<Button>(R.id.btnAddUnidadDespachador)
         val btnAddPOI = view.findViewById<Button>(R.id.btnAddPOI)
+
+        btnFilterAll = view.findViewById(R.id.btnFilterAll)
+        btnFilterDisponible = view.findViewById(R.id.btnFilterDisponible)
+        btnFilterOcupado = view.findViewById(R.id.btnFilterOcupado)
 
         tvEmptyFlota = view.findViewById(R.id.tvEmptyFlota)
         tvEmptyChoferes = view.findViewById(R.id.tvEmptyChoferes)
@@ -82,7 +95,50 @@ class ControlDespachadorFragment : Fragment() {
             startActivity(Intent(requireContext(), AddPoiActivity::class.java))
         }
 
+        btnFilterAll.setOnClickListener { updateFilter("ALL") }
+        btnFilterDisponible.setOnClickListener { updateFilter("0") }
+        btnFilterOcupado.setOnClickListener { updateFilter("1") }
+
+        updateFilterVisuals()
         loadData()
+    }
+
+    private fun updateFilter(filter: String) {
+        currentFilter = filter
+        updateFilterVisuals()
+        applyFilter()
+    }
+
+    private fun updateFilterVisuals() {
+        val primaryColor = ContextCompat.getColor(requireContext(), R.color.teal_primary)
+        val whiteColor = ContextCompat.getColor(requireContext(), android.R.color.white)
+
+        // Reset all
+        listOf(btnFilterAll, btnFilterDisponible, btnFilterOcupado).forEach { btn ->
+            btn.setBackgroundColor(whiteColor)
+            btn.setTextColor(primaryColor)
+        }
+
+        // Highlight selected
+        val selectedBtn = when (currentFilter) {
+            "ALL" -> btnFilterAll
+            "0" -> btnFilterDisponible
+            "1" -> btnFilterOcupado
+            else -> btnFilterAll
+        }
+        selectedBtn.setBackgroundColor(primaryColor)
+        selectedBtn.setTextColor(whiteColor)
+    }
+
+    private fun applyFilter() {
+        val filteredList = when (currentFilter) {
+            "ALL" -> allChoferes
+            "0" -> allChoferes.filter { it.estado == "0" }
+            "1" -> allChoferes.filter { it.estado == "1" }
+            else -> allChoferes
+        }
+        adapterChoferes.updateChoferes(filteredList)
+        tvEmptyChoferes.visibility = if (filteredList.isEmpty()) View.VISIBLE else View.GONE
     }
 
     private fun deletePoi(poi: PuntoInteres) {
@@ -158,9 +214,9 @@ class ControlDespachadorFragment : Fragment() {
             .whereEqualTo("rol", "chofer")
             .addSnapshotListener { snapshot, _ ->
                 val list = snapshot?.toObjects(User::class.java) ?: emptyList()
-                val laborando = list.filter { it.estado != "2" }
-                adapterChoferes.updateChoferes(laborando)
-                tvEmptyChoferes.visibility = if (laborando.isEmpty()) View.VISIBLE else View.GONE
+                // FILTRO: Solo activos (0 y 1)
+                allChoferes = list.filter { it.estado != "2" }
+                applyFilter()
             }
 
         poiListener = db.collection("puntosInteres")
