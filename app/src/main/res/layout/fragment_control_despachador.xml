@@ -50,7 +50,7 @@
                     <ImageView
                         android:layout_width="24dp"
                         android:layout_height="24dp"
-                        android:src="@drawable/ic_rutas"
+                        android:src="@drawable/ic_truck"
                         app:tint="@color/teal_primary" />
 
                     <TextView

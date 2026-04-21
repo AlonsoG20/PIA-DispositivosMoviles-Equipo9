@@ -26,6 +26,7 @@ import com.google.maps.GeoApiContext
 import com.google.maps.model.TravelMode
 import org.PIA.geofence.R
 import org.PIA.geofence.data.PuntoInteres
+import org.PIA.geofence.data.Unidad
 import org.PIA.geofence.data.User
 import java.text.SimpleDateFormat
 import java.util.*
@@ -51,7 +52,15 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
     private lateinit var rvPoiDropdown: RecyclerView
     private lateinit var poiSmallAdapter: PoiSmallAdapter
 
+    // Nuevos elementos para Unidades
+    private lateinit var btnSeleccionarUnidad: View
+    private lateinit var tvUnidadSeleccionada: TextView
+    private lateinit var cardUnidadesDropdown: View
+    private lateinit var rvUnidadesDropdown: RecyclerView
+    private lateinit var unidadCompactAdapter: UnidadCompactAdapter
+
     private var choferSeleccionado: User? = null
+    private var unidadSeleccionada: Unidad? = null
     private var paradasSeleccionadas = mutableListOf<Marker>()
     private var poiMarkers = mutableListOf<Marker>()
     private var poliLineaRuta: Polyline? = null
@@ -76,6 +85,12 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
         rvParadas = view.findViewById(R.id.rvParadasSeleccionadas)
         tvChoferInfo = view.findViewById(R.id.tvChoferSeleccionadoInfo)
         btnEnviar = view.findViewById(R.id.btnEnviarRutaFinal)
+
+        // Inicializar vistas de unidades
+        btnSeleccionarUnidad = view.findViewById(R.id.btnSeleccionarUnidad)
+        tvUnidadSeleccionada = view.findViewById(R.id.tvUnidadSeleccionada)
+        cardUnidadesDropdown = view.findViewById(R.id.cardUnidadesDropdown)
+        rvUnidadesDropdown = view.findViewById(R.id.rvUnidadesDropdown)
         
         tvEmptyChoferes = TextView(context).apply {
             text = "No hay choferes disponibles"
@@ -91,7 +106,7 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
         rvParadas.layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
         rvParadas.adapter = paradaAdapter
 
-        // Usar adaptador compacto
+        // Usar adaptador compacto para POIs
         poiSmallAdapter = PoiSmallAdapter(emptyList()) { poi ->
             val latLng = LatLng(poi.lugar?.latitude ?: 0.0, poi.lugar?.longitude ?: 0.0)
             agregarParada(latLng, poi.nombre)
@@ -99,6 +114,16 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
         }
         rvPoiDropdown.layoutManager = LinearLayoutManager(context)
         rvPoiDropdown.adapter = poiSmallAdapter
+
+        // Configurar adaptador de unidades
+        unidadCompactAdapter = UnidadCompactAdapter(emptyList()) { unidad ->
+            unidadSeleccionada = unidad
+            tvUnidadSeleccionada.text = "Unidad: ${unidad.numeroEconomico} (${unidad.placa})"
+            tvUnidadSeleccionada.setTextColor(Color.BLACK)
+            cardUnidadesDropdown.visibility = View.GONE
+        }
+        rvUnidadesDropdown.layoutManager = LinearLayoutManager(context)
+        rvUnidadesDropdown.adapter = unidadCompactAdapter
 
         val mapFragment = childFragmentManager.findFragmentById(R.id.mapViewDespachador) as SupportMapFragment
         mapFragment.getMapAsync(this)
@@ -119,9 +144,32 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
             }
         }
 
+        btnSeleccionarUnidad.setOnClickListener {
+            if (cardUnidadesDropdown.visibility == View.VISIBLE) {
+                cardUnidadesDropdown.visibility = View.GONE
+            } else {
+                cardUnidadesDropdown.visibility = View.VISIBLE
+                cargarUnidadesDisponibles()
+            }
+        }
+
         btnEnviar.setOnClickListener { asignarRutaFinal() }
 
         cargarChoferesDisponibles()
+    }
+
+    private fun cargarUnidadesDisponibles() {
+        db.collection("unidades")
+            .whereEqualTo("estado", "Disponible")
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val list = snapshot.toObjects(Unidad::class.java)
+                unidadCompactAdapter.updateUnidades(list)
+                if (list.isEmpty()) {
+                    Toast.makeText(context, "No hay unidades disponibles", Toast.LENGTH_SHORT).show()
+                    cardUnidadesDropdown.visibility = View.GONE
+                }
+            }
     }
 
     private fun cargarPuntosInteresDropdown() {
@@ -219,6 +267,11 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
         tvChoferInfo.text = "Asignando a: ${user.nombreCompleto}"
         layoutLista.visibility = View.GONE
         layoutMapa.visibility = View.VISIBLE
+        // Resetear unidad al cambiar chofer
+        unidadSeleccionada = null
+        tvUnidadSeleccionada.text = "Seleccionar Unidad (Obligatorio)"
+        tvUnidadSeleccionada.setTextColor(resources.getColor(R.color.gray_hint, null))
+
         if (::mMap.isInitialized) {
             limpiarMapa()
             cargarPuntosInteresMapa()
@@ -232,6 +285,7 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
         mMap.setOnMapClickListener { latLng ->
             agregarParada(latLng)
             cardPOIDropdown.visibility = View.GONE
+            cardUnidadesDropdown.visibility = View.GONE
         }
 
         mMap.setOnMarkerClickListener { marker ->
@@ -313,8 +367,18 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
     }
 
     private fun asignarRutaFinal() {
-        if (choferSeleccionado == null || paradasSeleccionadas.size < 2) {
+        if (choferSeleccionado == null) {
+            Toast.makeText(context, "Selecciona un chofer", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (paradasSeleccionadas.size < 2) {
             Toast.makeText(context, "Mínimo 2 paradas requeridas", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (unidadSeleccionada == null) {
+            Toast.makeText(context, "Debes asignar una unidad forzosamente", Toast.LENGTH_SHORT).show()
+            cardUnidadesDropdown.visibility = View.VISIBLE
+            cargarUnidadesDisponibles()
             return
         }
 
@@ -326,6 +390,9 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
             "despachadorId" to auth.currentUser?.uid,
             "userId" to choferSeleccionado?.id,
             "nombreChofer" to choferSeleccionado?.nombreCompleto,
+            "unidadId" to unidadSeleccionada?.id,
+            "unidadEconomico" to unidadSeleccionada?.numeroEconomico,
+            "unidadPlaca" to unidadSeleccionada?.placa,
             "titulo" to "Ruta Asignada ${SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())}",
             "fechaInicio" to Timestamp.now(),
             "fechaFin" to null,
@@ -335,7 +402,13 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
         )
 
         db.collection("viajes").add(viaje).addOnSuccessListener {
+            // Actualizar estado de chofer y unidad
             db.collection("usuarios").document(choferSeleccionado!!.id).update("estado", "1")
+            db.collection("unidades").document(unidadSeleccionada!!.id).update(
+                "estado", "En ruta",
+                "conductorAsignado", choferSeleccionado?.nombreCompleto
+            )
+            
             Toast.makeText(context, "Ruta enviada con éxito", Toast.LENGTH_SHORT).show()
             layoutMapa.visibility = View.GONE
             layoutLista.visibility = View.VISIBLE
@@ -375,6 +448,36 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
 
         fun updatePois(newPois: List<PuntoInteres>) {
             pois = newPois
+            notifyDataSetChanged()
+        }
+    }
+
+    private inner class UnidadCompactAdapter(
+        private var unidades: List<Unidad>,
+        private val onUnidadClick: (Unidad) -> Unit
+    ) : RecyclerView.Adapter<UnidadCompactAdapter.ViewHolder>() {
+
+        inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+            val tvEco: TextView = view.findViewById(R.id.tvNumEconomicoCompact)
+            val tvPlaca: TextView = view.findViewById(R.id.tvPlacaCompact)
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_unidad_compact, parent, false)
+            return ViewHolder(view)
+        }
+
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+            val unidad = unidades[position]
+            holder.tvEco.text = unidad.numeroEconomico
+            holder.tvPlaca.text = unidad.placa
+            holder.itemView.setOnClickListener { onUnidadClick(unidad) }
+        }
+
+        override fun getItemCount() = unidades.size
+
+        fun updateUnidades(newList: List<Unidad>) {
+            unidades = newList
             notifyDataSetChanged()
         }
     }

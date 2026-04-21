@@ -143,6 +143,25 @@
                 app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
                 tools:listitem="@layout/item_parada_mini" />
 
+            <!-- Dropdown de Unidades (Aparece arriba de la card de confirmación) -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardUnidadesDropdown"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginBottom="4dp"
+                android:visibility="gone"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="8dp">
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rvUnidadesDropdown"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:maxHeight="150dp"
+                    android:padding="4dp" />
+            </com.google.android.material.card.MaterialCardView>
+
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardConfirmar"
                 android:layout_width="match_parent"
@@ -165,6 +184,41 @@
                         android:text="Asignando a: Juan Pérez"
                         android:textStyle="bold"
                         android:textColor="@color/teal_primary" />
+
+                    <!-- Selector de Unidad -->
+                    <LinearLayout
+                        android:id="@+id/btnSeleccionarUnidad"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:padding="8dp">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_truck"
+                            app:tint="@color/gray_hint" />
+
+                        <TextView
+                            android:id="@+id/tvUnidadSeleccionada"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="8dp"
+                            android:text="Seleccionar Unidad (Obligatorio)"
+                            android:textColor="@color/gray_hint" />
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@android:drawable/arrow_down_float"
+                            app:tint="@color/gray_hint" />
+                    </LinearLayout>
 
                     <Button
                         android:id="@+id/btnEnviarRutaFinal"
