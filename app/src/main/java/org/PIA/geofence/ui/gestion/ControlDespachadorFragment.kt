@@ -1,5 +1,6 @@
 package org.PIA.geofence.ui.gestion
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -7,7 +8,6 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -18,6 +18,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import org.PIA.geofence.R
+import org.PIA.geofence.data.PuntoInteres
 import org.PIA.geofence.data.Unidad
 import org.PIA.geofence.data.User
 
@@ -26,12 +27,15 @@ class ControlDespachadorFragment : Fragment() {
     private lateinit var db: FirebaseFirestore
     private lateinit var adapterUnidades: UnidadAdapter
     private lateinit var adapterChoferes: ChoferAdapter
+    private lateinit var adapterPOI: PoiAdapter
 
     private lateinit var tvEmptyFlota: TextView
     private lateinit var tvEmptyChoferes: TextView
+    private lateinit var tvEmptyPOI: TextView
 
     private var unidadesListener: ListenerRegistration? = null
     private var choferesListener: ListenerRegistration? = null
+    private var poiListener: ListenerRegistration? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -47,10 +51,14 @@ class ControlDespachadorFragment : Fragment() {
 
         val rvUnidades = view.findViewById<RecyclerView>(R.id.rvFlotaDespachador)
         val rvChoferes = view.findViewById<RecyclerView>(R.id.rvChoferesDespachador)
-        val btnAdd = view.findViewById<Button>(R.id.btnAddUnidadDespachador)
+        val rvPOI = view.findViewById<RecyclerView>(R.id.rvPOIDespachador)
+        
+        val btnAddUnidad = view.findViewById<Button>(R.id.btnAddUnidadDespachador)
+        val btnAddPOI = view.findViewById<Button>(R.id.btnAddPOI)
 
         tvEmptyFlota = view.findViewById(R.id.tvEmptyFlota)
         tvEmptyChoferes = view.findViewById(R.id.tvEmptyChoferes)
+        tvEmptyPOI = view.findViewById(R.id.tvEmptyPOI)
 
         adapterUnidades = UnidadAdapter(emptyList())
         rvUnidades.layoutManager = LinearLayoutManager(context)
@@ -60,11 +68,35 @@ class ControlDespachadorFragment : Fragment() {
         rvChoferes.layoutManager = LinearLayoutManager(context)
         rvChoferes.adapter = adapterChoferes
 
-        btnAdd.setOnClickListener {
+        adapterPOI = PoiAdapter(emptyList()) { poi ->
+            deletePoi(poi)
+        }
+        rvPOI.layoutManager = LinearLayoutManager(context)
+        rvPOI.adapter = adapterPOI
+
+        btnAddUnidad.setOnClickListener {
             showAddUnidadDialog()
         }
 
+        btnAddPOI.setOnClickListener {
+            startActivity(Intent(requireContext(), AddPoiActivity::class.java))
+        }
+
         loadData()
+    }
+
+    private fun deletePoi(poi: PuntoInteres) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Eliminar Punto")
+            .setMessage("¿Estás seguro de eliminar ${poi.nombre}?")
+            .setNegativeButton("Cancelar", null)
+            .setPositiveButton("Eliminar") { _, _ ->
+                db.collection("puntosInteres").document(poi.id).delete()
+                    .addOnSuccessListener {
+                        Toast.makeText(context, "Punto eliminado", Toast.LENGTH_SHORT).show()
+                    }
+            }
+            .show()
     }
 
     private fun showAddUnidadDialog() {
@@ -126,10 +158,19 @@ class ControlDespachadorFragment : Fragment() {
             .whereEqualTo("rol", "chofer")
             .addSnapshotListener { snapshot, _ ->
                 val list = snapshot?.toObjects(User::class.java) ?: emptyList()
-                // FILTRO: En CONTROL, el Despachador ve a los laborando (0 y 1), pero NO a los inactivos (2)
                 val laborando = list.filter { it.estado != "2" }
                 adapterChoferes.updateChoferes(laborando)
                 tvEmptyChoferes.visibility = if (laborando.isEmpty()) View.VISIBLE else View.GONE
+            }
+
+        poiListener = db.collection("puntosInteres")
+            .orderBy("nombre", Query.Direction.ASCENDING)
+            .addSnapshotListener { snapshot, _ ->
+                val list = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(PuntoInteres::class.java)?.apply { id = doc.id }
+                } ?: emptyList()
+                adapterPOI.updatePois(list)
+                tvEmptyPOI.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
             }
     }
 
@@ -137,5 +178,6 @@ class ControlDespachadorFragment : Fragment() {
         super.onDestroyView()
         unidadesListener?.remove()
         choferesListener?.remove()
+        poiListener?.remove()
     }
 }
