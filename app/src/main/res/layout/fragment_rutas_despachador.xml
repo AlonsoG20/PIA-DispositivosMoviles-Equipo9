@@ -52,96 +52,131 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
 
-        <!-- Buscador / Input de parada -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/cardSearch"
+        <!-- Buscador / Sección de Búsqueda -->
+        <LinearLayout
+            android:id="@+id/layoutSearchSection"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:orientation="vertical"
             android:layout_margin="16dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="8dp"
             app:layout_constraintTop_toTopOf="parent">
 
-            <LinearLayout
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardSearch"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="8dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:padding="8dp">
+
+                    <EditText
+                        android:id="@+id/etBuscarParada"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:hint="Buscar dirección o punto..."
+                        android:background="@null"
+                        android:padding="12dp"
+                        android:textSize="14sp" />
+
+                    <ImageButton
+                        android:id="@+id/btnBuscarParadaText"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@android:drawable/ic_menu_search"
+                        app:tint="@color/teal_primary" />
+
+                    <ImageView
+                        android:id="@+id/btnShowPOI"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:padding="8dp"
+                        android:src="@drawable/ic_rutas"
+                        app:tint="@color/teal_primary"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Lista desplegable de Puntos de Interés (Compacta) -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardPOIDropdown"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:visibility="gone"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="8dp">
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rvPoiDropdown"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:maxHeight="180dp"
+                    android:padding="4dp" />
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+
+        <!-- Sección de Confirmación y Paradas (Acomodada abajo) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            app:layout_constraintBottom_toBottomOf="parent">
+
+            <!-- Lista de paradas seleccionadas (Compacta y pegada abajo) -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvParadasSeleccionadas"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:padding="8dp">
+                android:paddingHorizontal="8dp"
+                android:paddingBottom="4dp"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                tools:listitem="@layout/item_parada_mini" />
 
-                <ImageView
-                    android:id="@+id/btnBackToList"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:padding="8dp"
-                    android:src="@drawable/ic_expand_less"
-                    android:rotation="-90"
-                    app:tint="@color/gray_hint" />
-
-                <EditText
-                    android:id="@+id/etBuscarParada"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:hint="Buscar dirección o punto..."
-                    android:background="@null"
-                    android:padding="12dp"
-                    android:textSize="14sp" />
-
-                <ImageView
-                    android:id="@+id/btnAddParadaTexto"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:padding="8dp"
-                    android:src="@drawable/ic_location"
-                    app:tint="@color/teal_primary" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Lista de paradas seleccionadas (Poder deseleccionar) -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvParadasSeleccionadas"
-            android:layout_width="match_parent"
-            android:layout_height="120dp"
-            android:orientation="horizontal"
-            android:padding="8dp"
-            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-            app:layout_constraintBottom_toTopOf="@id/cardConfirmar"
-            tools:listitem="@layout/item_parada_mini" />
-
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/cardConfirmar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_margin="16dp"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="10dp"
-            app:layout_constraintBottom_toBottomOf="parent">
-
-            <LinearLayout
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardConfirmar"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="10dp">
 
-                <TextView
-                    android:id="@+id/tvChoferSeleccionadoInfo"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Asignando a: Juan Pérez"
-                    android:textStyle="bold"
-                    android:textColor="@color/teal_primary" />
-
-                <Button
-                    android:id="@+id/btnEnviarRutaFinal"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="Enviar Ruta al Chofer"
-                    android:backgroundTint="@color/teal_primary"
-                    android:textColor="@color/white" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:id="@+id/tvChoferSeleccionadoInfo"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Asignando a: Juan Pérez"
+                        android:textStyle="bold"
+                        android:textColor="@color/teal_primary" />
+
+                    <Button
+                        android:id="@+id/btnEnviarRutaFinal"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Enviar Ruta al Chofer"
+                        android:backgroundTint="@color/teal_primary"
+                        android:textColor="@color/white" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
