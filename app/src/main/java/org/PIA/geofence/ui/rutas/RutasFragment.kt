@@ -48,6 +48,8 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
     private var rutaAsignada: Ruta? = null
     private var rutaListener: ListenerRegistration? = null
     
+    private var rutaIniciada = false
+    private var paradasCompletadas = 0
     private var markerVehiculo: Marker? = null
     private var poliLineaRuta: Polyline? = null
     private var animatorVehiculo: ValueAnimator? = null
@@ -80,12 +82,15 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
         if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             mMap.isMyLocationEnabled = true
         }
+        
+        rutaAsignada?.let {
+            if (it.estado == "aceptada") trazarRutaEnMapa(it)
+        }
     }
 
     private fun escucharRutasAsignadas() {
         val userId = auth.currentUser?.uid ?: return
 
-        // Escuchamos si hay una ruta "pendiente" o "aceptada" para este chofer
         rutaListener = db.collection("rutas")
             .whereEqualTo("choferId", userId)
             .whereIn("estado", listOf("pendiente", "aceptada", "en_progreso"))
@@ -103,10 +108,10 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
 
     private fun actualizarUIConRuta(ruta: Ruta) {
         tvEstadoRuta.text = "Ruta Asignada: ${ruta.nombre}"
-        tvParadaActual.text = "Tienes una ruta pendiente. ¿Deseas aceptarla?"
         
         when (ruta.estado) {
             "pendiente" -> {
+                tvParadaActual.text = "Tienes una ruta pendiente. ¿Deseas aceptarla?"
                 btnAceptarRuta.visibility = View.VISIBLE
                 btnIniciarRuta.visibility = View.GONE
                 btnFinalizarRuta.visibility = View.GONE
@@ -133,7 +138,10 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
         btnAceptarRuta.visibility = View.GONE
         btnIniciarRuta.visibility = View.GONE
         btnFinalizarRuta.visibility = View.GONE
-        mMap.clear()
+        
+        if (::mMap.isInitialized) {
+            mMap.clear()
+        }
         puntosCaminoReal.clear()
     }
 
@@ -147,7 +155,7 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
     }
 
     private fun trazarRutaEnMapa(ruta: Ruta) {
-        if (ruta.paradas.isEmpty()) return
+        if (!::mMap.isInitialized || ruta.paradas.isEmpty()) return
         
         mMap.clear()
         ruta.paradas.forEach { parada ->
@@ -200,6 +208,8 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
         if (puntosCaminoReal.isEmpty()) return
         
         val rutaId = rutaAsignada?.id ?: return
+        rutaIniciada = true
+        paradasCompletadas = 0
         db.collection("rutas").document(rutaId).update("estado", "en_progreso")
 
         markerVehiculo = mMap.addMarker(MarkerOptions()
@@ -211,7 +221,7 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
     }
 
     private fun animarVehiculo(index: Int) {
-        if (index >= puntosCaminoReal.size - 1) {
+        if (!rutaIniciada || index >= puntosCaminoReal.size - 1) {
             finalizarRuta(true)
             return
         }
@@ -230,24 +240,80 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
                 )
                 markerVehiculo?.position = pos
                 mMap.moveCamera(CameraUpdateFactory.newLatLng(pos))
+                verificarLlegadaAParada(pos)
             }
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(a: Animator) {
-                    animarVehiculo(index + 1)
+                    if (rutaIniciada) animarVehiculo(index + 1)
                 }
             })
             start()
         }
     }
 
+    private fun verificarLlegadaAParada(pos: LatLng) {
+        rutaAsignada?.paradas?.forEachIndexed { index, parada ->
+            if (index > paradasCompletadas - 1) {
+                val distance = FloatArray(1)
+                android.location.Location.distanceBetween(pos.latitude, pos.longitude, parada.latitud, parada.longitud, distance)
+                if (distance[0] < 50) { 
+                    onParadaAlcanzada("parada_$index")
+                }
+            }
+        }
+    }
+
+    private fun onParadaAlcanzada(paradaId: String) {
+        val index = paradaId.replace("parada_", "").toInt()
+        if (index < paradasCompletadas) return
+        
+        paradasCompletadas = index + 1
+        tvParadasCompletadas.visibility = View.VISIBLE
+        tvParadasCompletadas.text = "$paradasCompletadas/${rutaAsignada?.paradas?.size ?: 0} paradas completadas"
+
+        if (index + 1 < (rutaAsignada?.paradas?.size ?: 0)) {
+            tvParadaActual.text = "Próxima parada: ${rutaAsignada?.paradas?.get(index + 1)?.nombre}"
+        }
+    }
+
     private fun finalizarRuta(guardar: Boolean) {
+        rutaIniciada = false
         val rutaId = rutaAsignada?.id ?: return
         db.collection("rutas").document(rutaId).update("estado", "completada")
         
+        if (guardar) {
+            guardarViajeYActualizarCuenta()
+        }
+
         animatorVehiculo?.cancel()
         markerVehiculo?.remove()
         
         Toast.makeText(requireContext(), "Ruta completada", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun guardarViajeYActualizarCuenta() {
+        val userId = auth.currentUser?.uid ?: return
+        val totalParadas = rutaAsignada?.paradas?.size ?: 1
+        val kmRecorridos = (paradasCompletadas * 0.5)
+        val sdf = SimpleDateFormat("dd/MM HH:mm", Locale.getDefault())
+        val nombreViaje = "Viaje - ${sdf.format(Date())}"
+
+        db.collection("usuarios").document(userId).get().addOnSuccessListener { userDoc ->
+            val nombre = userDoc.getString("nombre") ?: ""
+            val apellidos = userDoc.getString("apellidos") ?: ""
+            val nombreCompleto = "$nombre $apellidos".trim()
+
+            val viaje = hashMapOf(
+                "userId" to userId,
+                "titulo" to nombreViaje,
+                "distancia" to String.format(Locale.US, "%.1f", kmRecorridos),
+                "paradas" to paradasCompletadas,
+                "fecha" to com.google.firebase.Timestamp.now(),
+                "costo" to (kmRecorridos * 15).toInt().toString(),
+                "combustible" to String.format(Locale.US, "%.2f", kmRecorridos * 0.1)
+            )
+            db.collection("viajes").add(viaje)
+        }
     }
 
     override fun onDestroyView() {

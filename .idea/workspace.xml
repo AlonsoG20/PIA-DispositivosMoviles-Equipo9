@@ -172,10 +172,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e4c48124-3f77-47f5-86a6-3339e5c5d98b" name="Changes" comment="ruta alternativa">
-      <change afterPath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/data/Ruta.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/ui/rutas/RutasFragment.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/ui/rutas/RutasFragment.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/res/layout/fragment_rutas.xml" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/res/layout/fragment_rutas.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
