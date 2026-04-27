@@ -20,11 +20,11 @@ import com.google.android.gms.maps.model.*
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.GeoPoint
 import com.google.maps.DirectionsApi
 import com.google.maps.GeoApiContext
 import com.google.maps.model.TravelMode
 import org.PIA.geofence.R
+import org.PIA.geofence.data.ParadaData
 import org.PIA.geofence.data.PuntoInteres
 import org.PIA.geofence.data.Unidad
 import org.PIA.geofence.data.User
@@ -52,7 +52,6 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
     private lateinit var rvPoiDropdown: RecyclerView
     private lateinit var poiSmallAdapter: PoiSmallAdapter
 
-    // Nuevos elementos para Unidades
     private lateinit var btnSeleccionarUnidad: View
     private lateinit var tvUnidadSeleccionada: TextView
     private lateinit var cardUnidadesDropdown: View
@@ -86,7 +85,6 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
         tvChoferInfo = view.findViewById(R.id.tvChoferSeleccionadoInfo)
         btnEnviar = view.findViewById(R.id.btnEnviarRutaFinal)
 
-        // Inicializar vistas de unidades
         btnSeleccionarUnidad = view.findViewById(R.id.btnSeleccionarUnidad)
         tvUnidadSeleccionada = view.findViewById(R.id.tvUnidadSeleccionada)
         cardUnidadesDropdown = view.findViewById(R.id.cardUnidadesDropdown)
@@ -106,7 +104,6 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
         rvParadas.layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
         rvParadas.adapter = paradaAdapter
 
-        // Usar adaptador compacto para POIs
         poiSmallAdapter = PoiSmallAdapter(emptyList()) { poi ->
             val latLng = LatLng(poi.lugar?.latitude ?: 0.0, poi.lugar?.longitude ?: 0.0)
             agregarParada(latLng, poi.nombre)
@@ -115,7 +112,6 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
         rvPoiDropdown.layoutManager = LinearLayoutManager(context)
         rvPoiDropdown.adapter = poiSmallAdapter
 
-        // Configurar adaptador de unidades
         unidadCompactAdapter = UnidadCompactAdapter(emptyList()) { unidad ->
             unidadSeleccionada = unidad
             tvUnidadSeleccionada.text = "Unidad: ${unidad.numeroEconomico} (${unidad.placa})"
@@ -241,7 +237,7 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
                         }
                         override fun onBindViewHolder(holder: ChoferViewHolder, position: Int) {
                             val user = disponibles[position]
-                            holder.tvNombre.text = user.nombreCompleto
+                            holder.tvName.text = user.nombreCompleto
                             holder.tvEstado.text = "Disponible"
                             holder.tvEstado.setTextColor(resources.getColor(android.R.color.holo_green_dark, null))
                             holder.vIndicator.backgroundTintList = android.content.res.ColorStateList.valueOf(
@@ -257,7 +253,7 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
     }
 
     class ChoferViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val tvNombre: TextView = view.findViewById(R.id.tvChoferNombre)
+        val tvName: TextView = view.findViewById(R.id.tvChoferNombre)
         val tvEstado: TextView = view.findViewById(R.id.tvChoferEstado)
         val vIndicator: View = view.findViewById(R.id.vEstadoIndicator)
     }
@@ -267,7 +263,6 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
         tvChoferInfo.text = "Asignando a: ${user.nombreCompleto}"
         layoutLista.visibility = View.GONE
         layoutMapa.visibility = View.VISIBLE
-        // Resetear unidad al cambiar chofer
         unidadSeleccionada = null
         tvUnidadSeleccionada.text = "Seleccionar Unidad (Obligatorio)"
         tvUnidadSeleccionada.setTextColor(resources.getColor(R.color.gray_hint, null))
@@ -367,7 +362,8 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
     }
 
     private fun asignarRutaFinal() {
-        if (choferSeleccionado == null) {
+        val chofer = choferSeleccionado
+        if (chofer == null) {
             Toast.makeText(context, "Selecciona un chofer", Toast.LENGTH_SHORT).show()
             return
         }
@@ -376,42 +372,40 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
             return
         }
         if (unidadSeleccionada == null) {
-            Toast.makeText(context, "Debes asignar una unidad forzosamente", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Debes asignar una unidad", Toast.LENGTH_SHORT).show()
             cardUnidadesDropdown.visibility = View.VISIBLE
             cargarUnidadesDisponibles()
             return
         }
 
-        val listaGeoPoints = paradasSeleccionadas.map {
-            GeoPoint(it.position.latitude, it.position.longitude)
+        val paradasData = paradasSeleccionadas.map {
+            ParadaData(it.title ?: "Parada", it.position.latitude, it.position.longitude)
         }
 
-        val viaje = hashMapOf(
+        val timestamp = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+        val nuevaRuta = hashMapOf(
+            "nombre" to "Ruta $timestamp",
+            "choferId" to chofer.id,
+            "choferNombre" to chofer.nombreCompleto,
             "despachadorId" to auth.currentUser?.uid,
-            "userId" to choferSeleccionado?.id,
-            "nombreChofer" to choferSeleccionado?.nombreCompleto,
             "unidadId" to unidadSeleccionada?.id,
-            "unidadEconomico" to unidadSeleccionada?.numeroEconomico,
             "unidadPlaca" to unidadSeleccionada?.placa,
-            "titulo" to "Ruta Asignada ${SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())}",
-            "fechaInicio" to Timestamp.now(),
-            "fechaFin" to null,
             "estado" to "pendiente",
-            "puntosParada" to listaGeoPoints,
-            "paradas" to paradasSeleccionadas.size
+            "fechaCreacion" to Timestamp.now(),
+            "paradas" to paradasData
         )
 
-        db.collection("viajes").add(viaje).addOnSuccessListener {
-            // Actualizar estado de chofer y unidad
-            db.collection("usuarios").document(choferSeleccionado!!.id).update("estado", "1")
-            db.collection("unidades").document(unidadSeleccionada!!.id).update(
-                "estado", "En ruta",
-                "conductorAsignado", choferSeleccionado?.nombreCompleto
-            )
+        db.collection("rutas").add(nuevaRuta).addOnSuccessListener {
+            // Actualizar estados para que no aparezcan como disponibles
+            db.collection("usuarios").document(chofer.id).update("estado", "1")
+            db.collection("unidades").document(unidadSeleccionada!!.id).update("estado", "En ruta")
             
-            Toast.makeText(context, "Ruta enviada con éxito", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Ruta asignada al chofer correctamente", Toast.LENGTH_SHORT).show()
             layoutMapa.visibility = View.GONE
             layoutLista.visibility = View.VISIBLE
+            limpiarMapa()
+        }.addOnFailureListener { e ->
+            Toast.makeText(context, "Error al asignar: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
