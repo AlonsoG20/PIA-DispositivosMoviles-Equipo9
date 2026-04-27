@@ -9,9 +9,10 @@ data class Unidad(
     val id: String = "",
     val placa: String = "",
     val modelo: String = "",
-    val estado: String = "Disponible", // Disponible, En ruta, Mantenimiento
+    val estado: String = "Disponible", // Disponible, En ruta
     val ultimaUbicacion: GeoPoint? = null,
     val ultimaActualizacion: Timestamp? = null,
     val numeroEconomico: String = "",
-    val conductorAsignado: String = "" // Nombre o ID del conductor
+    val choferIdAsignado: String = "", // Id del chofer
+    val nombreChoferAsignado: String = "" // Nombre del chofer
 )

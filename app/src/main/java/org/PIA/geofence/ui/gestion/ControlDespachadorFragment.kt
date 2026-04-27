@@ -184,7 +184,8 @@ class ControlDespachadorFragment : Fragment() {
                 "numeroEconomico" to economico,
                 "modelo" to modelo,
                 "estado" to "Disponible",
-                "conductorAsignado" to "",
+                "choferIdAsignado" to "",
+                "nombreChoferAsignado" to "",
                 "ultimaActualizacion" to Timestamp.now()
             )
 

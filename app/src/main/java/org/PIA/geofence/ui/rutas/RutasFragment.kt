@@ -299,9 +299,13 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
         // 2. Liberar al Chofer (estado = "0")
         db.collection("usuarios").document(userId).update("estado", "0")
         
-        // 3. Liberar la Unidad (estado = "Disponible") si existe
+        // 3. Liberar la Unidad (estado = "Disponible") y limpiar asignación
         if (!unidadId.isNullOrEmpty()) {
-            db.collection("unidades").document(unidadId).update("estado", "Disponible")
+            db.collection("unidades").document(unidadId).update(
+                "estado", "Disponible",
+                "choferIdAsignado", "",
+                "nombreChoferAsignado", ""
+            )
         }
 
         animatorVehiculo?.cancel()

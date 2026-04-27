@@ -399,7 +399,13 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
         db.collection("viajes").add(nuevaRuta).addOnSuccessListener {
             // Actualizar estados para que no aparezcan como disponibles
             db.collection("usuarios").document(chofer.id).update("estado", "1")
-            db.collection("unidades").document(unidadSeleccionada!!.id).update("estado", "En ruta")
+            
+            //Asignar chofer a la unidad en la base de datos
+            db.collection("unidades").document(unidadSeleccionada!!.id).update(
+                "estado", "En ruta",
+                "choferIdAsignado", chofer.id,
+                "nombreChoferAsignado", chofer.nombreCompleto
+            )
             
             Toast.makeText(context, "Ruta asignada al chofer correctamente", Toast.LENGTH_SHORT).show()
             layoutMapa.visibility = View.GONE

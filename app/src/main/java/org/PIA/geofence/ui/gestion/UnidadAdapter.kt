@@ -31,7 +31,7 @@ class UnidadAdapter(private var unidades: List<Unidad>) : RecyclerView.Adapter<U
         val unidad = unidades[position]
         holder.tvPlaca.text = unidad.placa
         holder.tvNumeroEconomico.text = if (unidad.numeroEconomico.isNotEmpty()) "(#${unidad.numeroEconomico})" else ""
-        holder.tvConductor.text = "Conductor: ${unidad.conductorAsignado.ifEmpty { "Sin asignar" }}"
+        holder.tvConductor.text = "Conductor: ${unidad.nombreChoferAsignado.ifEmpty { "Sin asignar" }}"
 
         val geo = unidad.ultimaUbicacion
         holder.tvUbicacion.text = if (geo != null) {

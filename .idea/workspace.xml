@@ -198,17 +198,12 @@
       <change beforePath="$PROJECT_DIR$/.gradle/9.1.0/fileHashes/fileHashes.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/9.1.0/fileHashes/fileHashes.lock" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.gradle/9.1.0/fileHashes/resourceHashesCache.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/9.1.0/fileHashes/resourceHashesCache.bin" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/deploymentTargetSelector.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/deploymentTargetSelector.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/data/Ruta.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/data/Viaje.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/data/Viaje.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/ui/cuenta/CuentaFragment.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/ui/cuenta/CuentaFragment.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/ui/historial/HistorialFragment.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/ui/historial/HistorialFragment.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/ui/reportes/ReportesFragment.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/ui/reportes/ReportesFragment.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/ui/rutas/ParadaMiniAdapter.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/ui/rutas/ParadaMiniAdapter.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/data/Unidad.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/data/Unidad.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/ui/gestion/ControlDespachadorFragment.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/ui/gestion/ControlDespachadorFragment.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/ui/gestion/UnidadAdapter.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/ui/gestion/UnidadAdapter.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/ui/rutas/RutasDespachadorFragment.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/ui/rutas/RutasDespachadorFragment.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/ui/rutas/RutasFragment.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/ui/rutas/RutasFragment.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/reports/problems/problems-report.html" beforeDir="false" afterPath="$PROJECT_DIR$/build/reports/problems/problems-report.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -596,7 +591,23 @@
       <option name="project" value="LOCAL" />
       <updated>1777314665723</updated>
     </task>
-    <option name="localTasksCounter" value="23" />
+    <task id="LOCAL-00023" summary="unificación y definición de coleccion viajes">
+      <option name="closed" value="true" />
+      <created>1777328343955</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1777328343955</updated>
+    </task>
+    <task id="LOCAL-00024" summary="unificación y definición de coleccion viajes">
+      <option name="closed" value="true" />
+      <created>1777328433718</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1777328433718</updated>
+    </task>
+    <option name="localTasksCounter" value="25" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
