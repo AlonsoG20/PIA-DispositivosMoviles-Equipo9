@@ -34,12 +34,21 @@ class ControlDespachadorFragment : Fragment() {
     private lateinit var tvEmptyFlota: TextView
     private lateinit var tvEmptyChoferes: TextView
     private lateinit var tvEmptyPOI: TextView
+    private lateinit var tvFlotaStatus: TextView
 
     private lateinit var btnFilterAll: MaterialButton
     private lateinit var btnFilterDisponible: MaterialButton
     private lateinit var btnFilterOcupado: MaterialButton
 
+    private lateinit var btnShowMoreFlota: Button
+    private lateinit var btnShowMorePOI: Button
+
+    private var allUnidades: List<Unidad> = emptyList()
+    private var allPois: List<PuntoInteres> = emptyList()
     private var allChoferes: List<User> = emptyList()
+
+    private var isFlotaExpanded = false
+    private var isPoiExpanded = false
     private var currentFilter: String = "ALL" // "ALL", "0", "1"
 
     private var unidadesListener: ListenerRegistration? = null
@@ -72,6 +81,10 @@ class ControlDespachadorFragment : Fragment() {
         tvEmptyFlota = view.findViewById(R.id.tvEmptyFlota)
         tvEmptyChoferes = view.findViewById(R.id.tvEmptyChoferes)
         tvEmptyPOI = view.findViewById(R.id.tvEmptyPOI)
+        tvFlotaStatus = view.findViewById(R.id.tvFlotaStatus)
+
+        btnShowMoreFlota = view.findViewById(R.id.btnShowMoreFlota)
+        btnShowMorePOI = view.findViewById(R.id.btnShowMorePOI)
 
         adapterUnidades = UnidadAdapter(emptyList())
         rvUnidades.layoutManager = LinearLayoutManager(context)
@@ -98,6 +111,16 @@ class ControlDespachadorFragment : Fragment() {
         btnFilterAll.setOnClickListener { updateFilter("ALL") }
         btnFilterDisponible.setOnClickListener { updateFilter("0") }
         btnFilterOcupado.setOnClickListener { updateFilter("1") }
+
+        btnShowMoreFlota.setOnClickListener {
+            isFlotaExpanded = !isFlotaExpanded
+            updateFlotaList()
+        }
+
+        btnShowMorePOI.setOnClickListener {
+            isPoiExpanded = !isPoiExpanded
+            updatePoiList()
+        }
 
         updateFilterVisuals()
         loadData()
@@ -139,6 +162,42 @@ class ControlDespachadorFragment : Fragment() {
         }
         adapterChoferes.updateChoferes(filteredList)
         tvEmptyChoferes.visibility = if (filteredList.isEmpty()) View.VISIBLE else View.GONE
+    }
+
+    private fun updateFlotaList() {
+        val displayList = if (isFlotaExpanded || allUnidades.size <= 3) {
+            allUnidades
+        } else {
+            allUnidades.take(3)
+        }
+        adapterUnidades.updateUnidades(displayList)
+        
+        btnShowMoreFlota.visibility = if (allUnidades.size > 3) View.VISIBLE else View.GONE
+        btnShowMoreFlota.text = if (isFlotaExpanded) "Mostrar menos" else "Mostrar más"
+
+        updateFlotaStatus()
+    }
+
+    private fun updateFlotaStatus() {
+        if (allUnidades.isEmpty()) {
+            tvFlotaStatus.text = "Sin unidades"
+            return
+        }
+        val disponibles = allUnidades.count { it.estado == "Disponible" }
+        val noDisponibles = allUnidades.size - disponibles
+        tvFlotaStatus.text = "$disponibles disponibles • $noDisponibles no disponibles"
+    }
+
+    private fun updatePoiList() {
+        val displayList = if (isPoiExpanded || allPois.size <= 3) {
+            allPois
+        } else {
+            allPois.take(3)
+        }
+        adapterPOI.updatePois(displayList)
+
+        btnShowMorePOI.visibility = if (allPois.size > 3) View.VISIBLE else View.GONE
+        btnShowMorePOI.text = if (isPoiExpanded) "Mostrar menos" else "Mostrar más"
     }
 
     private fun deletePoi(poi: PuntoInteres) {
@@ -206,9 +265,9 @@ class ControlDespachadorFragment : Fragment() {
         unidadesListener = db.collection("unidades")
             .orderBy("placa", Query.Direction.ASCENDING)
             .addSnapshotListener { snapshot, _ ->
-                val list = snapshot?.toObjects(Unidad::class.java) ?: emptyList()
-                adapterUnidades.updateUnidades(list)
-                tvEmptyFlota.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
+                allUnidades = snapshot?.toObjects(Unidad::class.java) ?: emptyList()
+                updateFlotaList()
+                tvEmptyFlota.visibility = if (allUnidades.isEmpty()) View.VISIBLE else View.GONE
             }
 
         choferesListener = db.collection("usuarios")
@@ -223,11 +282,11 @@ class ControlDespachadorFragment : Fragment() {
         poiListener = db.collection("puntosInteres")
             .orderBy("nombre", Query.Direction.ASCENDING)
             .addSnapshotListener { snapshot, _ ->
-                val list = snapshot?.documents?.mapNotNull { doc ->
+                allPois = snapshot?.documents?.mapNotNull { doc ->
                     doc.toObject(PuntoInteres::class.java)?.apply { id = doc.id }
                 } ?: emptyList()
-                adapterPOI.updatePois(list)
-                tvEmptyPOI.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
+                updatePoiList()
+                tvEmptyPOI.visibility = if (allPois.isEmpty()) View.VISIBLE else View.GONE
             }
     }
 
