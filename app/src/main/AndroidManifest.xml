@@ -41,7 +41,7 @@
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyAjjiNfvcx-3pSKpNULTceVeX46YxLfItc"/>
+            android:value="${MAPS_API_KEY}"/>
 
         <receiver
             android:name="org.PIA.geofence.ReceptorGeofence"

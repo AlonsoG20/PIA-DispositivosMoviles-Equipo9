@@ -26,8 +26,8 @@ import com.google.firebase.firestore.ListenerRegistration
 import com.google.maps.DirectionsApi
 import com.google.maps.GeoApiContext
 import com.google.maps.model.TravelMode
+import org.PIA.geofence.BuildConfig
 import org.PIA.geofence.R
-import org.PIA.geofence.ReceptorGeofence
 import org.PIA.geofence.data.Ruta
 import java.text.SimpleDateFormat
 import java.util.*
@@ -55,7 +55,7 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
     private var animatorVehiculo: ValueAnimator? = null
     private var puntosCaminoReal = mutableListOf<LatLng>()
 
-    private val apiKey = "AIzaSyAjjiNfvcx-3pSKpNULTceVeX46YxLfItc"
+    private val apiKey = BuildConfig.MAPS_API_KEY
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)

@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     alias(libs.plugins.android.application)
     id("org.jetbrains.kotlin.android")
@@ -8,6 +11,14 @@ android {
     namespace = "org.PIA.geofence"
     compileSdk = 35
 
+    val properties = Properties().apply {
+        val propertiesFile = project.rootProject.file("gradle.properties")
+        if (propertiesFile.exists()) {
+            load(FileInputStream(propertiesFile))
+        }
+    }
+    val mapsApiKey = properties.getProperty("MAPS_API_KEY") ?: ""
+
     defaultConfig {
         applicationId = "org.PIA.geofence"
         minSdk = 24
@@ -16,6 +27,13 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        
+        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
+        buildConfigField("String", "MAPS_API_KEY", "\"$mapsApiKey\"")
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     buildTypes {
@@ -33,10 +51,6 @@ android {
     }
     kotlinOptions {
         jvmTarget = "11"
-    }
-    defaultConfig {
-        // ...
-        manifestPlaceholders["MAPS_API_KEY"] = "AIzaSyBvnwDSJQDFdkkJulHT1BctccrsRiTnbmA"
     }
 }
 
@@ -56,7 +70,7 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     
     // Firebase BoM
-    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
+    implementation(platform("com.google.firebase:firebase-bom:34.12.0"))
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
