@@ -20,11 +20,11 @@ import com.google.android.gms.maps.model.*
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.GeoPoint
 import com.google.maps.DirectionsApi
 import com.google.maps.GeoApiContext
 import com.google.maps.model.TravelMode
 import org.PIA.geofence.R
-import org.PIA.geofence.data.ParadaData
 import org.PIA.geofence.data.PuntoInteres
 import org.PIA.geofence.data.Unidad
 import org.PIA.geofence.data.User
@@ -322,7 +322,7 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
         )
         marker?.let { 
             paradasSeleccionadas.add(it)
-            paradaAdapter.updateData(paradasSeleccionadas)
+            paradaAdapter.itemAdded()
             if (paradasSeleccionadas.size >= 2) trazarRuta()
         }
     }
@@ -330,7 +330,7 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
     private fun removeParada(position: Int) {
         paradasSeleccionadas[position].remove()
         paradasSeleccionadas.removeAt(position)
-        paradaAdapter.updateData(paradasSeleccionadas)
+        paradaAdapter.itemRemoved(position)
         if (paradasSeleccionadas.size >= 2) trazarRuta() else poliLineaRuta?.remove()
     }
 
@@ -378,24 +378,25 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
             return
         }
 
-        val paradasData = paradasSeleccionadas.map {
-            ParadaData(it.title ?: "Parada", it.position.latitude, it.position.longitude)
+        val puntosParada = paradasSeleccionadas.map {
+            GeoPoint(it.position.latitude, it.position.longitude)
         }
 
         val timestamp = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
         val nuevaRuta = hashMapOf(
-            "nombre" to "Ruta $timestamp",
+            "titulo" to "Ruta $timestamp",
             "choferId" to chofer.id,
-            "choferNombre" to chofer.nombreCompleto,
-            "despachadorId" to auth.currentUser?.uid,
-            "unidadId" to unidadSeleccionada?.id,
-            "unidadPlaca" to unidadSeleccionada?.placa,
+            "nombreChofer" to chofer.nombreCompleto,
+            "despachadorId" to (auth.currentUser?.uid ?: ""),
+            "unidadId" to (unidadSeleccionada?.id ?: ""),
+            "placaUnidad" to (unidadSeleccionada?.placa ?: ""),
             "estado" to "pendiente",
-            "fechaCreacion" to Timestamp.now(),
-            "paradas" to paradasData
+            "fechaInicio" to Timestamp.now(),
+            "puntosParada" to puntosParada,
+            "cantidadParadas" to puntosParada.size
         )
 
-        db.collection("rutas").add(nuevaRuta).addOnSuccessListener {
+        db.collection("viajes").add(nuevaRuta).addOnSuccessListener {
             // Actualizar estados para que no aparezcan como disponibles
             db.collection("usuarios").document(chofer.id).update("estado", "1")
             db.collection("unidades").document(unidadSeleccionada!!.id).update("estado", "En ruta")
@@ -410,12 +411,13 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
     }
 
     private fun limpiarMapa() {
+        val count = paradasSeleccionadas.size
         paradasSeleccionadas.forEach { it.remove() }
         paradasSeleccionadas.clear()
         poiMarkers.forEach { it.remove() }
         poiMarkers.clear()
         poliLineaRuta?.remove()
-        paradaAdapter.updateData(paradasSeleccionadas)
+        paradaAdapter.notifyItemRangeRemoved(0, count)
     }
 
     private inner class PoiSmallAdapter(

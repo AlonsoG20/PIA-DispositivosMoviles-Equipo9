@@ -65,9 +65,10 @@ class ReportesFragment : Fragment() {
                 set(Calendar.HOUR_OF_DAY, 0)
                 set(Calendar.MINUTE, 0)
                 set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
             }.time
 
-            val rutasHoy = viajes.count { it.fecha?.toDate()?.after(hoy) == true }
+            val rutasHoy = viajes.count { it.fechaInicio?.toDate()?.after(hoy) == true }
             viajes.forEach { kmAcumulados += it.distancia.toDoubleOrNull() ?: 0.0 }
 
             tvRutasHoy.text = rutasHoy.toString()

@@ -42,21 +42,21 @@ class HistorialFragment : Fragment(R.layout.fragment_historial) {
     }
 
     private fun cargarHistorial() {
-        val userId = auth.currentUser?.uid ?: return
+        val currentUserId = auth.currentUser?.uid ?: return
 
-        db.collection("usuarios").document(userId).get().addOnSuccessListener { userDoc ->
+        db.collection("usuarios").document(currentUserId).get().addOnSuccessListener { userDoc ->
             val rol = userDoc.getString("rol") ?: ""
             Log.d("Historial", "Usuario rol: $rol")
 
             val collectionRef = db.collection("viajes")
             
             val query = if (rol == "despachador") {
-                collectionRef.whereEqualTo("despachadorId", userId)
+                collectionRef.whereEqualTo("despachadorId", currentUserId)
             } else {
-                collectionRef.whereEqualTo("userId", userId)
+                // Se cambió de "userId" a "choferId" para coincidir con el modelo Viaje
+                collectionRef.whereEqualTo("choferId", currentUserId)
             }
 
-            // Quitamos el orderBy temporalmente para verificar si el problema es el índice compuesto
             query.addSnapshotListener { value, error ->
                 if (error != null) {
                     Log.e("Historial", "Error en query: ${error.message}")
@@ -66,7 +66,7 @@ class HistorialFragment : Fragment(R.layout.fragment_historial) {
                 val listaViajes = value?.toObjects(Viaje::class.java) ?: emptyList()
                 Log.d("Historial", "Viajes recuperados: ${listaViajes.size}")
 
-                // Ordenar manualmente en Kotlin para evitar problemas de índices en Firestore por ahora
+                // Ordenar manualmente por fecha de inicio
                 val listaOrdenada = listaViajes.sortedByDescending { it.fechaInicio }
                 adapter.updateData(listaOrdenada)
 

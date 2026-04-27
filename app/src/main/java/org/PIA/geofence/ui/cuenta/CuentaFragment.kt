@@ -99,9 +99,9 @@ class CuentaFragment : Fragment(R.layout.fragment_cuenta) {
     }
 
     private fun loadCompletedRoutes(driverName: String) {
-        db.collection("rutas")
-            .whereEqualTo("chofer", driverName)
-            .whereEqualTo("completado", true)
+        db.collection("viajes")
+            .whereEqualTo("nombreChofer", driverName)
+            .whereEqualTo("estado", "completada")
             .get()
             .addOnSuccessListener { documents ->
                 if (documents != null && !documents.isEmpty) {
