@@ -10,7 +10,7 @@ import com.google.android.gms.maps.model.Marker
 import org.PIA.geofence.R
 
 class ParadaMiniAdapter(
-    private var paradas: MutableList<Marker>,
+    private val paradas: MutableList<Marker>,
     private val onRemove: (Int) -> Unit
 ) : RecyclerView.Adapter<ParadaMiniAdapter.ParadaViewHolder>() {
 
@@ -27,13 +27,19 @@ class ParadaMiniAdapter(
     override fun onBindViewHolder(holder: ParadaViewHolder, position: Int) {
         val marker = paradas[position]
         holder.tvNombre.text = marker.title ?: "Parada ${position + 1}"
-        holder.btnRemove.setOnClickListener { onRemove(position) }
+        holder.btnRemove.setOnClickListener { onRemove(holder.adapterPosition) }
     }
 
     override fun getItemCount() = paradas.size
 
-    fun updateData(newList: MutableList<Marker>) {
-        paradas = newList
-        notifyDataSetChanged()
+    // Se eliminó notifyDataSetChanged() por eventos más específicos
+    fun itemAdded() {
+        notifyItemInserted(paradas.size - 1)
+    }
+
+    fun itemRemoved(position: Int) {
+        notifyItemRemoved(position)
+        // Notificar cambios en el rango para actualizar los números de las paradas restantes
+        notifyItemRangeChanged(position, paradas.size - position)
     }
 }
