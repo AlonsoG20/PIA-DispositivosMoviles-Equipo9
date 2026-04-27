@@ -107,6 +107,7 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
     }
 
     private fun actualizarUIConRuta(ruta: Ruta) {
+        if (!isAdded) return
         tvEstadoRuta.text = "Ruta Asignada: ${ruta.nombre}"
         
         when (ruta.estado) {
@@ -133,6 +134,7 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
     }
 
     private fun mostrarSinRuta() {
+        if (!isAdded) return
         tvEstadoRuta.text = "Sin rutas asignadas"
         tvParadaActual.text = "Espera a que un despachador te asigne trabajo"
         btnAceptarRuta.visibility = View.GONE
@@ -150,7 +152,7 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
         db.collection("rutas").document(rutaId)
             .update("estado", "aceptada")
             .addOnSuccessListener {
-                Toast.makeText(requireContext(), "Ruta aceptada", Toast.LENGTH_SHORT).show()
+                if (isAdded) Toast.makeText(requireContext(), "Ruta aceptada", Toast.LENGTH_SHORT).show()
             }
     }
 
@@ -198,7 +200,7 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
                 }
             } catch (e: Exception) {
                 activity?.runOnUiThread {
-                    Toast.makeText(requireContext(), "Error al trazar calles: ${e.message}", Toast.LENGTH_SHORT).show()
+                    if (isAdded) Toast.makeText(requireContext(), "Error al trazar calles: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             }
         }.start()
@@ -277,10 +279,23 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
     }
 
     private fun finalizarRuta(guardar: Boolean) {
-        rutaIniciada = false
+        val userId = auth.currentUser?.uid ?: return
         val rutaId = rutaAsignada?.id ?: return
+        val unidadId = rutaAsignada?.unidadId
+
+        rutaIniciada = false
+        
+        // 1. Marcar ruta como completada
         db.collection("rutas").document(rutaId).update("estado", "completada")
         
+        // 2. Liberar al Chofer (estado = "0")
+        db.collection("usuarios").document(userId).update("estado", "0")
+        
+        // 3. Liberar la Unidad (estado = "Disponible") si existe
+        unidadId?.let {
+            db.collection("unidades").document(it).update("estado", "Disponible")
+        }
+
         if (guardar) {
             guardarViajeYActualizarCuenta()
         }
@@ -288,24 +303,19 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
         animatorVehiculo?.cancel()
         markerVehiculo?.remove()
         
-        Toast.makeText(requireContext(), "Ruta completada", Toast.LENGTH_SHORT).show()
+        if (isAdded) Toast.makeText(requireContext(), "Ruta finalizada. Ahora estás disponible.", Toast.LENGTH_SHORT).show()
     }
 
     private fun guardarViajeYActualizarCuenta() {
         val userId = auth.currentUser?.uid ?: return
-        val totalParadas = rutaAsignada?.paradas?.size ?: 1
         val kmRecorridos = (paradasCompletadas * 0.5)
         val sdf = SimpleDateFormat("dd/MM HH:mm", Locale.getDefault())
         val nombreViaje = "Viaje - ${sdf.format(Date())}"
 
         db.collection("usuarios").document(userId).get().addOnSuccessListener { userDoc ->
-            val nombre = userDoc.getString("nombre") ?: ""
-            val apellidos = userDoc.getString("apellidos") ?: ""
-            val nombreCompleto = "$nombre $apellidos".trim()
-
             val viaje = hashMapOf(
                 "userId" to userId,
-                "titulo" to nombreViaje,
+                "titulo" to (rutaAsignada?.nombre ?: nombreViaje),
                 "distancia" to String.format(Locale.US, "%.1f", kmRecorridos),
                 "paradas" to paradasCompletadas,
                 "fecha" to com.google.firebase.Timestamp.now(),

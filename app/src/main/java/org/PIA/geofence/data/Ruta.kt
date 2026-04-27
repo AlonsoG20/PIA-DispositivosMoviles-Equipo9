@@ -10,6 +10,8 @@ data class Ruta(
     val choferId: String? = null,
     val choferNombre: String? = null,
     val despachadorId: String = "",
+    val unidadId: String? = null,
+    val unidadPlaca: String? = null,
     val estado: String = "pendiente", // "pendiente", "aceptada", "en_progreso", "completada"
     val fechaCreacion: Timestamp? = null,
     val paradas: List<ParadaData> = emptyList()
