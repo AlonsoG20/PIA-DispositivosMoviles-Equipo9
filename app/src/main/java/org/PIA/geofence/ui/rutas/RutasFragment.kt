@@ -14,6 +14,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.location.*
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -26,6 +27,9 @@ import com.google.firebase.firestore.ListenerRegistration
 import com.google.maps.DirectionsApi
 import com.google.maps.GeoApiContext
 import com.google.maps.model.TravelMode
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.PIA.geofence.BuildConfig
 import org.PIA.geofence.R
 import org.PIA.geofence.data.Ruta
@@ -174,7 +178,7 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
             com.google.maps.model.LatLng(it.latitud, it.longitud)
         }.toTypedArray()
 
-        Thread {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val result = DirectionsApi.newRequest(context)
                     .mode(TravelMode.DRIVING)
@@ -187,7 +191,7 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
                     val path = result.routes[0].overviewPolyline.decodePath()
                     val decodedPath = path.map { LatLng(it.lat, it.lng) }
                     
-                    activity?.runOnUiThread {
+                    withContext(Dispatchers.Main) {
                         puntosCaminoReal.clear()
                         puntosCaminoReal.addAll(decodedPath)
                         poliLineaRuta = mMap.addPolyline(PolylineOptions()
@@ -199,11 +203,11 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
                     }
                 }
             } catch (e: Exception) {
-                activity?.runOnUiThread {
+                withContext(Dispatchers.Main) {
                     if (isAdded) Toast.makeText(requireContext(), "Error al trazar calles: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             }
-        }.start()
+        }
     }
 
     private fun iniciarRecorrido() {
