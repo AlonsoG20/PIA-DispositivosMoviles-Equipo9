@@ -126,23 +126,28 @@ class GestionFragment : Fragment() {
     }
 
     private fun showRefuelDialog(unidad: Unidad) {
-        // CORRECCIÓN DEFINITIVA: No inflar el layout de "Añadir Unidad" para recargar gasolina.
-        // Usamos un EditText simple creado por código para evitar duplicados.
-        val input = TextInputEditText(requireContext())
+        // CORRECCIÓN FINAL: Eliminar cualquier inflado de layout externo para evitar duplicados.
+        // Se construye el diálogo usando solo componentes creados por código.
+        val context = requireContext()
+        val input = TextInputEditText(context)
         input.hint = "Litros a cargar"
         input.inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
         
-        val container = LinearLayout(requireContext())
-        container.orientation = LinearLayout.VERTICAL
-        val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-        lp.setMargins(60, 20, 60, 0)
-        input.layoutParams = lp
-        container.addView(input)
+        val layout = LinearLayout(context)
+        layout.orientation = LinearLayout.VERTICAL
+        val params = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        val margin = (24 * context.resources.displayMetrics.density).toInt()
+        params.setMargins(margin, margin/2, margin, 0)
+        input.layoutParams = params
+        layout.addView(input)
 
-        MaterialAlertDialogBuilder(requireContext())
+        MaterialAlertDialogBuilder(context)
             .setTitle("Cargar Gasolina - U-${unidad.numeroEconomico}")
             .setMessage("Nivel actual: ${unidad.gasolinaActual.toInt()}L / ${unidad.capacidadMaxima.toInt()}L")
-            .setView(container)
+            .setView(layout)
             .setPositiveButton("Cargar") { _, _ ->
                 val litrosStr = input.text.toString()
                 if (litrosStr.isNotEmpty()) {

@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
@@ -73,7 +74,6 @@ class ControlDespachadorFragment : Fragment() {
         tvEmptyChoferes = view.findViewById(R.id.tvEmptyChoferes)
         tvEmptyPOI = view.findViewById(R.id.tvEmptyPOI)
 
-        // CORRECCIÓN: Pasar la función showRefuelDialog al adaptador
         adapterUnidades = UnidadAdapter(emptyList()) { unidad ->
             showRefuelDialog(unidad)
         }
@@ -107,23 +107,24 @@ class ControlDespachadorFragment : Fragment() {
     }
 
     private fun showRefuelDialog(unidad: Unidad) {
-        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_add_unidad, null)
-        val etGas = dialogView.findViewById<TextInputEditText>(R.id.etPlaca)
-        val tilGas = dialogView.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.tilPlaca)
+        // CORRECCIÓN DEFINITIVA: EditText simple sin inflar el layout de creación
+        val input = TextInputEditText(requireContext())
+        input.hint = "Litros a cargar"
+        input.inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
         
-        tilGas.hint = "Litros a cargar"
-        etGas.inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
-        
-        // Ocultar campos innecesarios del diálogo de creación
-        dialogView.findViewById<View>(R.id.tilEconomico).visibility = View.GONE
-        dialogView.findViewById<View>(R.id.tilModelo).visibility = View.GONE
-        dialogView.findViewById<TextView>(R.id.tvDialogTitle).text = "Cargar Gasolina"
+        val container = LinearLayout(requireContext())
+        container.orientation = LinearLayout.VERTICAL
+        val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+        lp.setMargins(60, 20, 60, 0)
+        input.layoutParams = lp
+        container.addView(input)
 
         MaterialAlertDialogBuilder(requireContext())
             .setTitle("Cargar Gasolina - U-${unidad.numeroEconomico}")
-            .setView(dialogView)
+            .setMessage("Nivel actual: ${unidad.gasolinaActual.toInt()}L / ${unidad.capacidadMaxima.toInt()}L")
+            .setView(container)
             .setPositiveButton("Cargar") { _, _ ->
-                val litrosStr = etGas.text.toString()
+                val litrosStr = input.text.toString()
                 if (litrosStr.isNotEmpty()) {
                     val litros = litrosStr.toDoubleOrNull() ?: 0.0
                     val nuevaGasolina = (unidad.gasolinaActual + litros).coerceAtMost(unidad.capacidadMaxima)
@@ -131,7 +132,7 @@ class ControlDespachadorFragment : Fragment() {
                     db.collection("unidades").document(unidad.id)
                         .update("gasolinaActual", nuevaGasolina)
                         .addOnSuccessListener {
-                            if (isAdded) Toast.makeText(context, "Gasolina cargada: $nuevaGasolina L", Toast.LENGTH_SHORT).show()
+                            if (isAdded) Toast.makeText(context, "Gasolina cargada: +$litros L", Toast.LENGTH_SHORT).show()
                         }
                 }
             }
