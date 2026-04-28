@@ -144,11 +144,15 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
         val userId = auth.currentUser?.uid ?: return
         
         db.collection("rutas").document(ruta.id).update("estado", "aceptada").addOnSuccessListener {
-            // REGISTRO INICIAL EN HISTORIAL (VIAJES)
+            // REGISTRO INICIAL EN HISTORIAL (VIAJES) con datos de chofer y unidad
             val historialData = hashMapOf(
                 "choferId" to userId,
+                "nombreChofer" to (ruta.choferNombre ?: ""),
+                "despachadorId" to ruta.despachadorId,
+                "unidadId" to (ruta.unidadId ?: ""),
+                "placaUnidad" to (ruta.unidadPlaca ?: ""),
                 "titulo" to ruta.nombre,
-                "estado" to "Aceptada",
+                "estado" to "aceptada",
                 "fechaInicio" to com.google.firebase.Timestamp.now(),
                 "distancia" to "0.0",
                 "cantidadParadas" to 0,
@@ -192,7 +196,7 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
         rutaIniciada = true
         paradasCompletadas = 0
         db.collection("rutas").document(rutaAsignada!!.id).update("estado", "en_progreso")
-        db.collection("viajes").document(rutaAsignada!!.id).update("estado", "En progreso")
+        db.collection("viajes").document(rutaAsignada!!.id).update("estado", "en progreso")
         markerVehiculo = mMap.addMarker(MarkerOptions().position(puntosCaminoReal[0]).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)).anchor(0.5f, 0.5f))
         animarVehiculo(0)
     }
@@ -239,7 +243,6 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
         val unidadId = rutaAsignada?.unidadId
         rutaIniciada = false
         
-        // CORRECCIÓN: Marcar como completada en la colección 'rutas' con los campos correctos para CuentaFragment
         val updatesRuta = hashMapOf(
             "estado" to "completada",
             "completado" to true,
@@ -254,7 +257,7 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
                 val u = doc.toObject(Unidad::class.java)
                 if (u != null) {
                     val km = paradasCompletadas * 0.5
-                    val consumption = km * 0.15
+                    val consumption = km * 1.0 // 1 litro por cada 1 km
                     val nuevaGas = (u.gasolinaActual - consumption).coerceAtLeast(0.0)
                     db.collection("unidades").document(uid).update("estado", "Disponible", "gasolinaActual", nuevaGas)
                 }
@@ -269,12 +272,14 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
 
     private fun actualizarHistorialFinal(rutaId: String) {
         val km = paradasCompletadas * 0.5
+        val combustible = km * 1.0 // 1 km = 1 litro
+        val costo = combustible * 30 // 30 por cada litro
         val updates = hashMapOf(
-            "estado" to "Completada",
+            "estado" to "completada", // Usar minúsculas para coincidir con el filtro de CuentaFragment
             "distancia" to "%.1f".format(Locale.US, km),
             "cantidadParadas" to paradasCompletadas,
-            "costo" to (km * 15).toInt().toString(),
-            "combustible" to "%.2f".format(Locale.US, km * 0.1),
+            "costo" to costo.toInt().toString(),
+            "combustible" to "%.1f".format(Locale.US, combustible),
             "fechaFin" to com.google.firebase.Timestamp.now()
         )
         db.collection("viajes").document(rutaId).update(updates as Map<String, Any>)

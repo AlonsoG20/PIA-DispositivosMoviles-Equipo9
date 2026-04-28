@@ -9,7 +9,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
 import org.PIA.geofence.R
 import org.PIA.geofence.data.Viaje
 import java.util.*
@@ -53,7 +52,6 @@ class HistorialFragment : Fragment(R.layout.fragment_historial) {
             val query = if (rol == "despachador") {
                 collectionRef.whereEqualTo("despachadorId", currentUserId)
             } else {
-                // Se cambió de "userId" a "choferId" para coincidir con el modelo Viaje
                 collectionRef.whereEqualTo("choferId", currentUserId)
             }
 
@@ -95,7 +93,9 @@ class HistorialFragment : Fragment(R.layout.fragment_historial) {
 
         return lista.count { viaje ->
             val fecha = viaje.fechaInicio?.toDate()
-            fecha != null && !fecha.before(hoy)
+            val esHoy = fecha != null && !fecha.before(hoy)
+            // Solo contar los que están completados
+            esHoy && viaje.estado.equals("completada", ignoreCase = true)
         }
     }
 }

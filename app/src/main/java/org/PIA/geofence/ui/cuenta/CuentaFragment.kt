@@ -10,6 +10,7 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import org.PIA.geofence.R
 import org.PIA.geofence.ui.login.LoginActivity
 
@@ -24,6 +25,8 @@ class CuentaFragment : Fragment(R.layout.fragment_cuenta) {
     private lateinit var tvCompletedRoutes: TextView
     private lateinit var cardStats: LinearLayout
     private lateinit var spacerStats: View
+    
+    private var viajesListener: ListenerRegistration? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -68,23 +71,21 @@ class CuentaFragment : Fragment(R.layout.fragment_cuenta) {
                     tvDriverName.text = if (nombreCompleto.isNotEmpty()) nombreCompleto else "Usuario"
                     tvUserRole.text = "Rol: $rol"
 
-                    // Mostrar unidad y estadísticas solo si el rol es Chofer
                     if (rol.equals("chofer", ignoreCase = true)) {
                         tvAssignedUnit.visibility = View.VISIBLE
                         cardStats.visibility = View.VISIBLE
                         spacerStats.visibility = View.VISIBLE
 
-                        // Cargar la unidad real si está en el documento
                         val unidad = document.getString("unidad")
                         if (unidad != null) {
                             tvAssignedUnit.text = "Unidad asignada: $unidad"
                         }
 
-                        // Buscar sus rutas completadas
+                        // Usar listener en tiempo real para las rutas completadas
                         if (nombreCompleto.isNotEmpty()) {
-                            loadCompletedRoutes(nombreCompleto)
+                            setupCompletedRoutesListener(nombreCompleto)
                         } else {
-                            tvCompletedRoutes.text = "Total de rutas realizadas: sin rutas completadas"
+                            tvCompletedRoutes.text = "Total de rutas realizadas: 0"
                         }
                     } else {
                         tvAssignedUnit.visibility = View.GONE
@@ -94,25 +95,32 @@ class CuentaFragment : Fragment(R.layout.fragment_cuenta) {
                 }
             }
             .addOnFailureListener { e ->
-                Toast.makeText(requireContext(), "Error al cargar datos: ${e.message}", Toast.LENGTH_SHORT).show()
+                if (isAdded) Toast.makeText(requireContext(), "Error al cargar datos: ${e.message}", Toast.LENGTH_SHORT).show()
             }
     }
 
-    private fun loadCompletedRoutes(driverName: String) {
-        db.collection("viajes")
+    private fun setupCompletedRoutesListener(driverName: String) {
+        viajesListener?.remove()
+        viajesListener = db.collection("viajes")
             .whereEqualTo("nombreChofer", driverName)
             .whereEqualTo("estado", "completada")
-            .get()
-            .addOnSuccessListener { documents ->
-                if (documents != null && !documents.isEmpty) {
-                    val count = documents.size()
+            .addSnapshotListener { snapshot, e ->
+                if (e != null) {
+                    tvCompletedRoutes.text = "Total de rutas realizadas: error"
+                    return@addSnapshotListener
+                }
+                
+                if (snapshot != null) {
+                    val count = snapshot.size()
                     tvCompletedRoutes.text = "Total de rutas realizadas: $count"
                 } else {
-                    tvCompletedRoutes.text = "Total de rutas realizadas: sin rutas completadas"
+                    tvCompletedRoutes.text = "Total de rutas realizadas: 0"
                 }
             }
-            .addOnFailureListener {
-                tvCompletedRoutes.text = "Total de rutas realizadas: sin rutas completadas"
-            }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        viajesListener?.remove()
     }
 }

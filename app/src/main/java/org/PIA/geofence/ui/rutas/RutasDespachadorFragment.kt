@@ -2,7 +2,6 @@ package org.PIA.geofence.ui.rutas
 
 import android.graphics.Color
 import android.location.Geocoder
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -20,7 +19,6 @@ import com.google.android.gms.maps.model.*
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.GeoPoint
 import com.google.maps.DirectionsApi
 import com.google.maps.GeoApiContext
 import com.google.maps.model.TravelMode
@@ -311,6 +309,7 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
     private fun asignarRutaFinal() {
         val chofer = choferSeleccionado ?: return
         val unidad = unidadSeleccionada ?: return
+        val currentUserId = auth.currentUser?.uid ?: ""
         
         if (unidad.gasolinaActual < 5.0) {
             Toast.makeText(context, "La unidad ${unidad.placa} no tiene suficiente gasolina (mínimo 5L)", Toast.LENGTH_LONG).show()
@@ -323,7 +322,8 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
         val nuevaRuta = hashMapOf(
             "nombre" to "Ruta $timestamp",
             "choferId" to chofer.id,
-            "chofer" to chofer.nombreCompleto, 
+            "choferNombre" to chofer.nombreCompleto, 
+            "despachadorId" to currentUserId,
             "unidadId" to unidad.id,
             "unidadPlaca" to unidad.placa,
             "estado" to "pendiente",
@@ -371,7 +371,7 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = ViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.item_unidad_compact, parent, false))
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val u = unidades[position]
-            holder.tvEco.text = u.numeroEconomico
+            holder.tvEco.text = "Eco: ${u.numeroEconomico}"
             holder.tvPlaca.text = u.placa
             holder.itemView.setOnClickListener { onUnidadClick(u) }
         }
