@@ -52,6 +52,7 @@ class GestionFragment : Fragment() {
         db = FirebaseFirestore.getInstance()
         setupSections(view)
         loadData()
+        escucharAlertas()
     }
 
     private fun setupSections(view: View) {
@@ -74,7 +75,6 @@ class GestionFragment : Fragment() {
         val iconUnidades = view.findViewById<ImageView>(R.id.ivExpandIconUnidades)
         val btnAdd = view.findViewById<Button>(R.id.btnAddUnidad)
 
-        // CORRECCIÓN: Pasar la función showRefuelDialog al adaptador
         adapterUnidades = UnidadAdapter(emptyList()) { unidad ->
             showRefuelDialog(unidad)
         }
@@ -126,22 +126,25 @@ class GestionFragment : Fragment() {
     }
 
     private fun showRefuelDialog(unidad: Unidad) {
-        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_add_unidad, null)
-        val etGas = dialogView.findViewById<TextInputEditText>(R.id.etPlaca)
-        val tilGas = dialogView.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.tilPlaca)
+        // CORRECCIÓN DEFINITIVA: No inflar el layout de "Añadir Unidad" para recargar gasolina.
+        // Usamos un EditText simple creado por código para evitar duplicados.
+        val input = TextInputEditText(requireContext())
+        input.hint = "Litros a cargar"
+        input.inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
         
-        tilGas.hint = "Litros a cargar"
-        etGas.inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
-        
-        dialogView.findViewById<View>(R.id.tilEconomico).visibility = View.GONE
-        dialogView.findViewById<View>(R.id.tilModelo).visibility = View.GONE
-        dialogView.findViewById<TextView>(R.id.tvDialogTitle).text = "Cargar Gasolina"
+        val container = LinearLayout(requireContext())
+        container.orientation = LinearLayout.VERTICAL
+        val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+        lp.setMargins(60, 20, 60, 0)
+        input.layoutParams = lp
+        container.addView(input)
 
         MaterialAlertDialogBuilder(requireContext())
             .setTitle("Cargar Gasolina - U-${unidad.numeroEconomico}")
-            .setView(dialogView)
+            .setMessage("Nivel actual: ${unidad.gasolinaActual.toInt()}L / ${unidad.capacidadMaxima.toInt()}L")
+            .setView(container)
             .setPositiveButton("Cargar") { _, _ ->
-                val litrosStr = etGas.text.toString()
+                val litrosStr = input.text.toString()
                 if (litrosStr.isNotEmpty()) {
                     val litros = litrosStr.toDoubleOrNull() ?: 0.0
                     val nuevaGasolina = (unidad.gasolinaActual + litros).coerceAtMost(unidad.capacidadMaxima)
@@ -149,7 +152,7 @@ class GestionFragment : Fragment() {
                     db.collection("unidades").document(unidad.id)
                         .update("gasolinaActual", nuevaGasolina)
                         .addOnSuccessListener {
-                            if (isAdded) Toast.makeText(context, "Gasolina cargada con éxito", Toast.LENGTH_SHORT).show()
+                            if (isAdded) Toast.makeText(context, "Gasolina cargada: +$litros L", Toast.LENGTH_SHORT).show()
                         }
                 }
             }
@@ -182,6 +185,22 @@ class GestionFragment : Fragment() {
                 adapterPersonal.updateUsers(activos)
                 val inactivos = list.filter { it.estado == "2" }
                 adapterInactivos.updateUsers(inactivos)
+            }
+    }
+
+    private fun escucharAlertas() {
+        db.collection("alertas")
+            .whereEqualTo("leida", false)
+            .addSnapshotListener { snapshot, _ ->
+                snapshot?.documentChanges?.forEach { dc ->
+                    if (dc.type == com.google.firebase.firestore.DocumentChange.Type.ADDED) {
+                        val msg = dc.document.getString("mensaje") ?: "Alerta de unidad"
+                        val eco = dc.document.getString("unidadEco") ?: ""
+                        if (isAdded) {
+                            Toast.makeText(context, "⚠️ ALERTA U-$eco: $msg", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
             }
     }
 

@@ -241,6 +241,7 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
         val userId = auth.currentUser?.uid ?: return
         val rutaId = rutaAsignada?.id ?: return
         val unidadId = rutaAsignada?.unidadId
+        val choferNombre = rutaAsignada?.choferNombre ?: "Chofer"
         rutaIniciada = false
         
         val updatesRuta = hashMapOf(
@@ -259,7 +260,32 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
                     val km = paradasCompletadas * 0.5
                     val consumption = km * 1.0 // 1 litro por cada 1 km
                     val nuevaGas = (u.gasolinaActual - consumption).coerceAtLeast(0.0)
+                    
                     db.collection("unidades").document(uid).update("estado", "Disponible", "gasolinaActual", nuevaGas)
+                    
+                    // ALERTA DE TANQUE BAJO (RESERVA < 25%)
+                    if (nuevaGas < (u.capacidadMaxima * 0.25)) {
+                        val mensajeAlerta = "Unidad U-${u.numeroEconomico} con tanque bajo (${nuevaGas.toInt()}L)"
+                        
+                        // 1. Alerta para el panel de notificaciones rápidas
+                        val alerta = hashMapOf(
+                            "mensaje" to mensajeAlerta,
+                            "unidadEco" to (u.numeroEconomico),
+                            "fecha" to com.google.firebase.Timestamp.now(),
+                            "leida" to false
+                        )
+                        db.collection("alertas").add(alerta)
+                        
+                        // 2. Incidencia para el apartado de "Alertas Geofencing" (ReportesFragment)
+                        val incidencia = hashMapOf(
+                            "chofer" to choferNombre,
+                            "tipo" to "Tanque Bajo",
+                            "detalle" to mensajeAlerta,
+                            "fecha" to com.google.firebase.Timestamp.now(),
+                            "nivelPrioridad" to "Alta"
+                        )
+                        db.collection("incidencias").add(incidencia)
+                    }
                 }
             }
         }

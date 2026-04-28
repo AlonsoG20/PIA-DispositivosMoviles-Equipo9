@@ -1,5 +1,7 @@
 package org.PIA.geofence.ui.gestion
 
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -23,6 +25,7 @@ class UnidadAdapter(
         val tvGasInfo: TextView = view.findViewById(R.id.tvGasolinaInfo)
         val pbGas: ProgressBar = view.findViewById(R.id.pbGasolina)
         val btnRefuel: Button = view.findViewById(R.id.btnRefuel)
+        val tvConductor: TextView = view.findViewById(R.id.tvConductor)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): UnidadViewHolder {
@@ -36,12 +39,24 @@ class UnidadAdapter(
         holder.tvEco.text = "U-${unidad.numeroEconomico}"
         holder.chipEstado.text = unidad.estado
         
+        // Limpiar el apartado de conductor por ahora
+        holder.tvConductor.text = "Conductor: (Sin asignar)"
+
         // Información de Gasolina
-        val gasActual = unidad.gasolinaActual.toInt()
-        val gasMax = unidad.capacidadMaxima.toInt()
-        holder.tvGasInfo.text = "Combustible: $gasActual/$gasMax L"
-        holder.pbGas.max = gasMax
-        holder.pbGas.progress = gasActual
+        val gasActual = unidad.gasolinaActual
+        val gasMax = unidad.capacidadMaxima
+        holder.tvGasInfo.text = "Combustible: ${gasActual.toInt()}/${gasMax.toInt()} L"
+        holder.pbGas.max = gasMax.toInt()
+        holder.pbGas.progress = gasActual.toInt()
+
+        // Cambio de color dinámico de la barra
+        val porcentaje = if (gasMax > 0) (gasActual / gasMax) else 0.0
+        val color = when {
+            porcentaje < 0.25 -> Color.RED        // Reserva (< 25%)
+            porcentaje < 0.60 -> Color.YELLOW     // Medio (< 60%)
+            else -> Color.parseColor("#4CAF50")   // Lleno (Verde)
+        }
+        holder.pbGas.progressTintList = ColorStateList.valueOf(color)
 
         // Acción de recarga
         holder.btnRefuel.setOnClickListener { onRefuelClick(unidad) }
