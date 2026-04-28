@@ -1,25 +1,28 @@
 package org.PIA.geofence.ui.gestion
 
-import android.text.format.DateUtils
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
+import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.chip.Chip
 import org.PIA.geofence.R
 import org.PIA.geofence.data.Unidad
-import java.util.Locale
 
-class UnidadAdapter(private var unidades: List<Unidad>) : RecyclerView.Adapter<UnidadAdapter.UnidadViewHolder>() {
+class UnidadAdapter(
+    private var unidades: List<Unidad>,
+    private val onRefuelClick: (Unidad) -> Unit
+) : RecyclerView.Adapter<UnidadAdapter.UnidadViewHolder>() {
 
     class UnidadViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvPlaca: TextView = view.findViewById(R.id.tvUnidadPlaca)
-        val tvNumeroEconomico: TextView = view.findViewById(R.id.tvNumeroEconomico)
-        val tvConductor: TextView = view.findViewById(R.id.tvConductor)
-        val tvUbicacion: TextView = view.findViewById(R.id.tvUbicacion)
-        val tvActualizacion: TextView = view.findViewById(R.id.tvActualizacion)
+        val tvEco: TextView = view.findViewById(R.id.tvNumeroEconomico)
         val chipEstado: Chip = view.findViewById(R.id.chipEstado)
+        val tvGasInfo: TextView = view.findViewById(R.id.tvGasolinaInfo)
+        val pbGas: ProgressBar = view.findViewById(R.id.pbGasolina)
+        val btnRefuel: Button = view.findViewById(R.id.btnRefuel)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): UnidadViewHolder {
@@ -29,25 +32,19 @@ class UnidadAdapter(private var unidades: List<Unidad>) : RecyclerView.Adapter<U
 
     override fun onBindViewHolder(holder: UnidadViewHolder, position: Int) {
         val unidad = unidades[position]
-        holder.tvPlaca.text = unidad.placa
-        holder.tvNumeroEconomico.text = if (unidad.numeroEconomico.isNotEmpty()) "(#${unidad.numeroEconomico})" else ""
-        holder.tvConductor.text = "Conductor: ${unidad.nombreChoferAsignado.ifEmpty { "Sin asignar" }}"
-
-        val geo = unidad.ultimaUbicacion
-        holder.tvUbicacion.text = if (geo != null) {
-            String.format(Locale.getDefault(), "%.4f, %.4f", geo.latitude, geo.longitude)
-        } else {
-            "Ubicación desconocida"
-        }
-
-        val timestamp = unidad.ultimaActualizacion
-        holder.tvActualizacion.text = if (timestamp != null) {
-            DateUtils.getRelativeTimeSpanString(timestamp.toDate().time)
-        } else {
-            "Sin datos"
-        }
-
+        holder.tvPlaca.text = "Placas: ${unidad.placa}"
+        holder.tvEco.text = "U-${unidad.numeroEconomico}"
         holder.chipEstado.text = unidad.estado
+        
+        // Información de Gasolina
+        val gasActual = unidad.gasolinaActual.toInt()
+        val gasMax = unidad.capacidadMaxima.toInt()
+        holder.tvGasInfo.text = "Combustible: $gasActual/$gasMax L"
+        holder.pbGas.max = gasMax
+        holder.pbGas.progress = gasActual
+
+        // Acción de recarga
+        holder.btnRefuel.setOnClickListener { onRefuelClick(unidad) }
         
         when (unidad.estado) {
             "Disponible" -> holder.chipEstado.setChipBackgroundColorResource(android.R.color.holo_green_light)

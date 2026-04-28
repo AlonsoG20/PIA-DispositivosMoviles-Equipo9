@@ -1,23 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="wrap_content"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="16dp"
-    android:layout_marginVertical="4dp"
+    android:layout_marginVertical="8dp"
     app:cardCornerRadius="12dp"
     app:cardElevation="2dp">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingHorizontal="16dp"
-        android:paddingVertical="10dp">
+        android:padding="16dp">
 
         <ImageView
             android:id="@+id/ivBus"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:src="@drawable/ic_truck"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
@@ -30,20 +30,20 @@
             android:layout_marginStart="12dp"
             android:layout_marginEnd="8dp"
             android:text="U-102"
-            android:textColor="@color/black"
-            android:textSize="17sp"
+            android:textSize="19sp"
             android:textStyle="bold"
-            app:layout_constraintEnd_toStartOf="@+id/chipEstado"
+            android:textColor="@color/black"
             app:layout_constraintStart_toEndOf="@id/ivBus"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/chipEstado" />
 
         <TextView
             android:id="@+id/tvUnidadPlaca"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Placas: ABC-1234"
+            android:textSize="13sp"
             android:textColor="@color/gray_hint"
-            android:textSize="12sp"
             app:layout_constraintStart_toStartOf="@id/tvNumeroEconomico"
             app:layout_constraintTop_toBottomOf="@id/tvNumeroEconomico" />
 
@@ -52,7 +52,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Disponible"
-            android:textSize="10sp"
+            android:textSize="11sp"
             app:chipMinTouchTargetSize="0dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
@@ -61,9 +61,9 @@
             android:id="@+id/tvConductor"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="4dp"
             android:text="Conductor: Juan Pérez"
-            android:textSize="12sp"
+            android:textSize="13sp"
             app:layout_constraintStart_toStartOf="@id/tvUnidadPlaca"
             app:layout_constraintTop_toBottomOf="@id/tvUnidadPlaca" />
 
@@ -71,43 +71,47 @@
             android:id="@+id/divider"
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="12dp"
             android:background="#EEEEEE"
             app:layout_constraintTop_toBottomOf="@id/tvConductor" />
 
-        <ImageView
-            android:id="@+id/ivLocation"
-            android:layout_width="14dp"
-            android:layout_height="14dp"
-            android:layout_marginTop="8dp"
-            android:src="@drawable/ic_location"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/divider"
-            app:tint="#757575" />
-
-        <TextView
-            android:id="@+id/tvUbicacion"
-            android:layout_width="0dp"
+        <!-- Sección de Gasolina -->
+        <LinearLayout
+            android:id="@+id/layoutGas"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="19.4326, -99.1332"
-            android:textColor="#757575"
-            android:textSize="11sp"
-            app:layout_constraintBottom_toBottomOf="@id/ivLocation"
-            app:layout_constraintEnd_toStartOf="@+id/tvActualizacion"
-            app:layout_constraintStart_toEndOf="@id/ivLocation"
-            app:layout_constraintTop_toTopOf="@id/ivLocation" />
+            android:orientation="vertical"
+            android:layout_marginTop="12dp"
+            app:layout_constraintTop_toBottomOf="@id/divider">
 
-        <TextView
-            android:id="@+id/tvActualizacion"
+            <TextView
+                android:id="@+id/tvGasolinaInfo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Combustible: 50/100 L"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:textColor="@color/black"/>
+
+            <ProgressBar
+                android:id="@+id/pbGasolina"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="8dp"
+                android:layout_marginTop="4dp"
+                android:progress="50"
+                android:progressTint="@color/teal_primary" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnRefuel"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Hace 5 min"
-            android:textColor="#9E9E9E"
-            android:textSize="11sp"
-            app:layout_constraintBottom_toBottomOf="@id/tvUbicacion"
+            android:text="Cargar Gasolina"
+            android:textSize="12sp"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@id/tvUbicacion" />
+            app:layout_constraintTop_toBottomOf="@id/layoutGas" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.cardview.widget.CardView>

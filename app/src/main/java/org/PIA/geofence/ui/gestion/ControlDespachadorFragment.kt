@@ -34,21 +34,12 @@ class ControlDespachadorFragment : Fragment() {
     private lateinit var tvEmptyFlota: TextView
     private lateinit var tvEmptyChoferes: TextView
     private lateinit var tvEmptyPOI: TextView
-    private lateinit var tvFlotaStatus: TextView
 
     private lateinit var btnFilterAll: MaterialButton
     private lateinit var btnFilterDisponible: MaterialButton
     private lateinit var btnFilterOcupado: MaterialButton
 
-    private lateinit var btnShowMoreFlota: Button
-    private lateinit var btnShowMorePOI: Button
-
-    private var allUnidades: List<Unidad> = emptyList()
-    private var allPois: List<PuntoInteres> = emptyList()
     private var allChoferes: List<User> = emptyList()
-
-    private var isFlotaExpanded = false
-    private var isPoiExpanded = false
     private var currentFilter: String = "ALL" // "ALL", "0", "1"
 
     private var unidadesListener: ListenerRegistration? = null
@@ -81,12 +72,11 @@ class ControlDespachadorFragment : Fragment() {
         tvEmptyFlota = view.findViewById(R.id.tvEmptyFlota)
         tvEmptyChoferes = view.findViewById(R.id.tvEmptyChoferes)
         tvEmptyPOI = view.findViewById(R.id.tvEmptyPOI)
-        tvFlotaStatus = view.findViewById(R.id.tvFlotaStatus)
 
-        btnShowMoreFlota = view.findViewById(R.id.btnShowMoreFlota)
-        btnShowMorePOI = view.findViewById(R.id.btnShowMorePOI)
-
-        adapterUnidades = UnidadAdapter(emptyList())
+        // CORRECCIÓN: Pasar la función showRefuelDialog al adaptador
+        adapterUnidades = UnidadAdapter(emptyList()) { unidad ->
+            showRefuelDialog(unidad)
+        }
         rvUnidades.layoutManager = LinearLayoutManager(context)
         rvUnidades.adapter = adapterUnidades
 
@@ -112,18 +102,41 @@ class ControlDespachadorFragment : Fragment() {
         btnFilterDisponible.setOnClickListener { updateFilter("0") }
         btnFilterOcupado.setOnClickListener { updateFilter("1") }
 
-        btnShowMoreFlota.setOnClickListener {
-            isFlotaExpanded = !isFlotaExpanded
-            updateFlotaList()
-        }
-
-        btnShowMorePOI.setOnClickListener {
-            isPoiExpanded = !isPoiExpanded
-            updatePoiList()
-        }
-
         updateFilterVisuals()
         loadData()
+    }
+
+    private fun showRefuelDialog(unidad: Unidad) {
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_add_unidad, null)
+        val etGas = dialogView.findViewById<TextInputEditText>(R.id.etPlaca)
+        val tilGas = dialogView.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.tilPlaca)
+        
+        tilGas.hint = "Litros a cargar"
+        etGas.inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+        
+        // Ocultar campos innecesarios del diálogo de creación
+        dialogView.findViewById<View>(R.id.tilEconomico).visibility = View.GONE
+        dialogView.findViewById<View>(R.id.tilModelo).visibility = View.GONE
+        dialogView.findViewById<TextView>(R.id.tvDialogTitle).text = "Cargar Gasolina"
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Cargar Gasolina - U-${unidad.numeroEconomico}")
+            .setView(dialogView)
+            .setPositiveButton("Cargar") { _, _ ->
+                val litrosStr = etGas.text.toString()
+                if (litrosStr.isNotEmpty()) {
+                    val litros = litrosStr.toDoubleOrNull() ?: 0.0
+                    val nuevaGasolina = (unidad.gasolinaActual + litros).coerceAtMost(unidad.capacidadMaxima)
+                    
+                    db.collection("unidades").document(unidad.id)
+                        .update("gasolinaActual", nuevaGasolina)
+                        .addOnSuccessListener {
+                            if (isAdded) Toast.makeText(context, "Gasolina cargada: $nuevaGasolina L", Toast.LENGTH_SHORT).show()
+                        }
+                }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
     }
 
     private fun updateFilter(filter: String) {
@@ -136,13 +149,11 @@ class ControlDespachadorFragment : Fragment() {
         val primaryColor = ContextCompat.getColor(requireContext(), R.color.teal_primary)
         val whiteColor = ContextCompat.getColor(requireContext(), android.R.color.white)
 
-        // Reset all
         listOf(btnFilterAll, btnFilterDisponible, btnFilterOcupado).forEach { btn ->
             btn.setBackgroundColor(whiteColor)
             btn.setTextColor(primaryColor)
         }
 
-        // Highlight selected
         val selectedBtn = when (currentFilter) {
             "ALL" -> btnFilterAll
             "0" -> btnFilterDisponible
@@ -164,42 +175,6 @@ class ControlDespachadorFragment : Fragment() {
         tvEmptyChoferes.visibility = if (filteredList.isEmpty()) View.VISIBLE else View.GONE
     }
 
-    private fun updateFlotaList() {
-        val displayList = if (isFlotaExpanded || allUnidades.size <= 3) {
-            allUnidades
-        } else {
-            allUnidades.take(3)
-        }
-        adapterUnidades.updateUnidades(displayList)
-        
-        btnShowMoreFlota.visibility = if (allUnidades.size > 3) View.VISIBLE else View.GONE
-        btnShowMoreFlota.text = if (isFlotaExpanded) "Mostrar menos" else "Mostrar más"
-
-        updateFlotaStatus()
-    }
-
-    private fun updateFlotaStatus() {
-        if (allUnidades.isEmpty()) {
-            tvFlotaStatus.text = "Sin unidades"
-            return
-        }
-        val disponibles = allUnidades.count { it.estado == "Disponible" }
-        val noDisponibles = allUnidades.size - disponibles
-        tvFlotaStatus.text = "$disponibles disponibles • $noDisponibles no disponibles"
-    }
-
-    private fun updatePoiList() {
-        val displayList = if (isPoiExpanded || allPois.size <= 3) {
-            allPois
-        } else {
-            allPois.take(3)
-        }
-        adapterPOI.updatePois(displayList)
-
-        btnShowMorePOI.visibility = if (allPois.size > 3) View.VISIBLE else View.GONE
-        btnShowMorePOI.text = if (isPoiExpanded) "Mostrar menos" else "Mostrar más"
-    }
-
     private fun deletePoi(poi: PuntoInteres) {
         MaterialAlertDialogBuilder(requireContext())
             .setTitle("Eliminar Punto")
@@ -208,7 +183,7 @@ class ControlDespachadorFragment : Fragment() {
             .setPositiveButton("Eliminar") { _, _ ->
                 db.collection("puntosInteres").document(poi.id).delete()
                     .addOnSuccessListener {
-                        Toast.makeText(context, "Punto eliminado", Toast.LENGTH_SHORT).show()
+                        if (isAdded) Toast.makeText(context, "Punto eliminado", Toast.LENGTH_SHORT).show()
                     }
             }
             .show()
@@ -243,18 +218,19 @@ class ControlDespachadorFragment : Fragment() {
                 "numeroEconomico" to economico,
                 "modelo" to modelo,
                 "estado" to "Disponible",
-                "choferIdAsignado" to "",
-                "nombreChoferAsignado" to "",
+                "conductorAsignado" to "",
+                "gasolinaActual" to 100.0,
+                "capacidadMaxima" to 100.0,
                 "ultimaActualizacion" to Timestamp.now()
             )
 
             db.collection("unidades").add(nuevaUnidad)
                 .addOnSuccessListener {
-                    Toast.makeText(context, "Unidad registrada con éxito", Toast.LENGTH_SHORT).show()
+                    if (isAdded) Toast.makeText(context, "Unidad registrada con éxito", Toast.LENGTH_SHORT).show()
                     dialog.dismiss()
                 }
                 .addOnFailureListener {
-                    Toast.makeText(context, "Error al registrar unidad", Toast.LENGTH_SHORT).show()
+                    if (isAdded) Toast.makeText(context, "Error al registrar unidad", Toast.LENGTH_SHORT).show()
                 }
         }
 
@@ -265,16 +241,17 @@ class ControlDespachadorFragment : Fragment() {
         unidadesListener = db.collection("unidades")
             .orderBy("placa", Query.Direction.ASCENDING)
             .addSnapshotListener { snapshot, _ ->
-                allUnidades = snapshot?.toObjects(Unidad::class.java) ?: emptyList()
-                updateFlotaList()
-                tvEmptyFlota.visibility = if (allUnidades.isEmpty()) View.VISIBLE else View.GONE
+                val list = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(Unidad::class.java)?.apply { id = doc.id }
+                } ?: emptyList()
+                adapterUnidades.updateUnidades(list)
+                tvEmptyFlota.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
             }
 
         choferesListener = db.collection("usuarios")
             .whereEqualTo("rol", "chofer")
             .addSnapshotListener { snapshot, _ ->
                 val list = snapshot?.toObjects(User::class.java) ?: emptyList()
-                // FILTRO: Solo activos (0 y 1)
                 allChoferes = list.filter { it.estado != "2" }
                 applyFilter()
             }
@@ -282,11 +259,11 @@ class ControlDespachadorFragment : Fragment() {
         poiListener = db.collection("puntosInteres")
             .orderBy("nombre", Query.Direction.ASCENDING)
             .addSnapshotListener { snapshot, _ ->
-                allPois = snapshot?.documents?.mapNotNull { doc ->
+                val list = snapshot?.documents?.mapNotNull { doc ->
                     doc.toObject(PuntoInteres::class.java)?.apply { id = doc.id }
                 } ?: emptyList()
-                updatePoiList()
-                tvEmptyPOI.visibility = if (allPois.isEmpty()) View.VISIBLE else View.GONE
+                adapterPOI.updatePois(list)
+                tvEmptyPOI.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
             }
     }
 

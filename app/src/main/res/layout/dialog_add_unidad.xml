@@ -13,6 +13,7 @@
         android:padding="24dp">
 
         <TextView
+            android:id="@+id/tvDialogTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Registrar Nueva Unidad"
@@ -85,7 +86,7 @@
                 android:id="@+id/btnGuardar"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Guardar Unidad"
+                android:text="Guardar"
                 android:backgroundTint="@color/teal_primary" />
         </LinearLayout>
 

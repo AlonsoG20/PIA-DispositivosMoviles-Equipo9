@@ -25,6 +25,7 @@ import com.google.maps.DirectionsApi
 import com.google.maps.GeoApiContext
 import com.google.maps.model.TravelMode
 import org.PIA.geofence.R
+import org.PIA.geofence.data.ParadaData
 import org.PIA.geofence.data.PuntoInteres
 import org.PIA.geofence.data.Unidad
 import org.PIA.geofence.data.User
@@ -126,27 +127,17 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
 
         btnBuscarParada.setOnClickListener {
             val query = etBuscar.text.toString().trim()
-            if (query.isNotEmpty()) {
-                buscarDireccion(query)
-            }
+            if (query.isNotEmpty()) buscarDireccion(query)
         }
 
         btnShowPOI.setOnClickListener {
-            if (cardPOIDropdown.visibility == View.VISIBLE) {
-                cardPOIDropdown.visibility = View.GONE
-            } else {
-                cardPOIDropdown.visibility = View.VISIBLE
-                cargarPuntosInteresDropdown()
-            }
+            cardPOIDropdown.visibility = if (cardPOIDropdown.visibility == View.VISIBLE) View.GONE else View.VISIBLE
+            if (cardPOIDropdown.visibility == View.VISIBLE) cargarPuntosInteresDropdown()
         }
 
         btnSeleccionarUnidad.setOnClickListener {
-            if (cardUnidadesDropdown.visibility == View.VISIBLE) {
-                cardUnidadesDropdown.visibility = View.GONE
-            } else {
-                cardUnidadesDropdown.visibility = View.VISIBLE
-                cargarUnidadesDisponibles()
-            }
+            cardUnidadesDropdown.visibility = if (cardUnidadesDropdown.visibility == View.VISIBLE) View.GONE else View.VISIBLE
+            if (cardUnidadesDropdown.visibility == View.VISIBLE) cargarUnidadesDisponibles()
         }
 
         btnEnviar.setOnClickListener { asignarRutaFinal() }
@@ -177,50 +168,25 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
 
     private fun buscarDireccion(query: String) {
         val geocoder = Geocoder(requireContext(), Locale.getDefault())
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            geocoder.getFromLocationName(query, 1, object : Geocoder.GeocodeListener {
-                override fun onGeocode(addresses: MutableList<android.location.Address>) {
-                    activity?.runOnUiThread {
-                        if (addresses.isNotEmpty()) {
-                            val addr = addresses[0]
-                            val latLng = LatLng(addr.latitude, addr.longitude)
-                            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15f))
-                            agregarParada(latLng, addr.getAddressLine(0) ?: "Búsqueda")
-                        } else {
-                            Toast.makeText(context, "No se encontró el lugar", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                }
-                override fun onError(errorMessage: String?) {
-                    activity?.runOnUiThread {
-                        Toast.makeText(context, "Error en la búsqueda: $errorMessage", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            })
-        } else {
-            try {
-                @Suppress("DEPRECATION")
-                val addresses = geocoder.getFromLocationName(query, 1)
-                if (addresses != null && addresses.isNotEmpty()) {
-                    val addr = addresses[0]
-                    val latLng = LatLng(addr.latitude, addr.longitude)
-                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15f))
-                    agregarParada(latLng, addr.getAddressLine(0) ?: "Búsqueda")
-                } else {
-                    Toast.makeText(context, "No se encontró el lugar", Toast.LENGTH_SHORT).show()
-                }
-            } catch (e: Exception) {
-                Toast.makeText(context, "Error en la búsqueda", Toast.LENGTH_SHORT).show()
+        try {
+            val addresses = geocoder.getFromLocationName(query, 1)
+            if (!addresses.isNullOrEmpty()) {
+                val addr = addresses[0]
+                val latLng = LatLng(addr.latitude, addr.longitude)
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15f))
+                agregarParada(latLng, addr.getAddressLine(0) ?: "Búsqueda")
+            } else {
+                Toast.makeText(context, "No se encontró el lugar", Toast.LENGTH_SHORT).show()
             }
+        } catch (e: Exception) {
+            Toast.makeText(context, "Error en la búsqueda", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun cargarChoferesDisponibles() {
         db.collection("usuarios")
             .whereEqualTo("rol", "chofer")
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) return@addSnapshotListener
-
+            .addSnapshotListener { snapshot, _ ->
                 val todosLosChoferes = snapshot?.toObjects(User::class.java) ?: emptyList()
                 val disponibles = todosLosChoferes.filter { it.estado == "0" }
                 
@@ -239,10 +205,6 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
                             val user = disponibles[position]
                             holder.tvName.text = user.nombreCompleto
                             holder.tvEstado.text = "Disponible"
-                            holder.tvEstado.setTextColor(resources.getColor(android.R.color.holo_green_dark, null))
-                            holder.vIndicator.backgroundTintList = android.content.res.ColorStateList.valueOf(
-                                resources.getColor(android.R.color.holo_green_dark, null)
-                            )
                             holder.itemView.setOnClickListener { seleccionarChofer(user) }
                         }
                         override fun getItemCount() = disponibles.size
@@ -255,7 +217,6 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
     class ChoferViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvName: TextView = view.findViewById(R.id.tvChoferNombre)
         val tvEstado: TextView = view.findViewById(R.id.tvChoferEstado)
-        val vIndicator: View = view.findViewById(R.id.vEstadoIndicator)
     }
 
     private fun seleccionarChofer(user: User) {
@@ -265,8 +226,6 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
         layoutMapa.visibility = View.VISIBLE
         unidadSeleccionada = null
         tvUnidadSeleccionada.text = "Seleccionar Unidad (Obligatorio)"
-        tvUnidadSeleccionada.setTextColor(resources.getColor(R.color.gray_hint, null))
-
         if (::mMap.isInitialized) {
             limpiarMapa()
             cargarPuntosInteresMapa()
@@ -276,21 +235,21 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(25.6866, -100.3161), 12f))
-
-        mMap.setOnMapClickListener { latLng ->
-            agregarParada(latLng)
+        
+        mMap.setOnMapClickListener { latLng -> 
+            agregarParada(latLng) 
             cardPOIDropdown.visibility = View.GONE
             cardUnidadesDropdown.visibility = View.GONE
         }
 
         mMap.setOnMarkerClickListener { marker ->
             if (marker.snippet == "POI") {
-                agregarParada(marker.position, marker.title ?: "")
+                agregarParada(marker.position, marker.title)
                 true
-            } else {
-                false
-            }
+            } else false
         }
+        
+        cargarPuntosInteresMapa()
     }
 
     private fun cargarPuntosInteresMapa() {
@@ -314,15 +273,10 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
 
     private fun agregarParada(latLng: LatLng, nombre: String? = null) {
         val titulo = nombre ?: "Parada ${paradasSeleccionadas.size + 1}"
-        val marker = mMap.addMarker(
-            MarkerOptions()
-                .position(latLng)
-                .title(titulo)
-                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN))
-        )
+        val marker = mMap.addMarker(MarkerOptions().position(latLng).title(titulo).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN)))
         marker?.let { 
             paradasSeleccionadas.add(it)
-            paradaAdapter.itemAdded()
+            paradaAdapter.updateData(paradasSeleccionadas)
             if (paradasSeleccionadas.size >= 2) trazarRuta()
         }
     }
@@ -330,7 +284,7 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
     private fun removeParada(position: Int) {
         paradasSeleccionadas[position].remove()
         paradasSeleccionadas.removeAt(position)
-        paradaAdapter.itemRemoved(position)
+        paradaAdapter.updateData(paradasSeleccionadas)
         if (paradasSeleccionadas.size >= 2) trazarRuta() else poliLineaRuta?.remove()
     }
 
@@ -338,18 +292,11 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
         val context = GeoApiContext.Builder().apiKey(apiKey).build()
         val origin = "${paradasSeleccionadas.first().position.latitude},${paradasSeleccionadas.first().position.longitude}"
         val destination = "${paradasSeleccionadas.last().position.latitude},${paradasSeleccionadas.last().position.longitude}"
-        
-        val waypoints = if (paradasSeleccionadas.size > 2) {
-            paradasSeleccionadas.subList(1, paradasSeleccionadas.size - 1).map {
-                com.google.maps.model.LatLng(it.position.latitude, it.position.longitude)
-            }.toTypedArray()
-        } else emptyArray()
+        val waypoints = paradasSeleccionadas.subList(1, paradasSeleccionadas.size - 1).map { com.google.maps.model.LatLng(it.position.latitude, it.position.longitude) }.toTypedArray()
 
         Thread {
             try {
-                val result = DirectionsApi.newRequest(context).mode(TravelMode.DRIVING)
-                    .origin(origin).destination(destination).waypoints(*waypoints).await()
-
+                val result = DirectionsApi.newRequest(context).mode(TravelMode.DRIVING).origin(origin).destination(destination).waypoints(*waypoints).await()
                 if (result.routes.isNotEmpty()) {
                     val path = result.routes[0].overviewPolyline.decodePath().map { LatLng(it.lat, it.lng) }
                     activity?.runOnUiThread {
@@ -357,130 +304,78 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
                         poliLineaRuta = mMap.addPolyline(PolylineOptions().addAll(path).color(Color.parseColor("#4CAF50")).width(12f))
                     }
                 }
-            } catch (e: Exception) { Log.e("Despacho", "Error ruta: ${e.message}") }
+            } catch (e: Exception) { Log.e("Despacho", "Error: ${e.message}") }
         }.start()
     }
 
     private fun asignarRutaFinal() {
-        val chofer = choferSeleccionado
-        if (chofer == null) {
-            Toast.makeText(context, "Selecciona un chofer", Toast.LENGTH_SHORT).show()
-            return
-        }
-        if (paradasSeleccionadas.size < 2) {
-            Toast.makeText(context, "Mínimo 2 paradas requeridas", Toast.LENGTH_SHORT).show()
-            return
-        }
-        if (unidadSeleccionada == null) {
-            Toast.makeText(context, "Debes asignar una unidad", Toast.LENGTH_SHORT).show()
-            cardUnidadesDropdown.visibility = View.VISIBLE
-            cargarUnidadesDisponibles()
+        val chofer = choferSeleccionado ?: return
+        val unidad = unidadSeleccionada ?: return
+        
+        if (unidad.gasolinaActual < 5.0) {
+            Toast.makeText(context, "La unidad ${unidad.placa} no tiene suficiente gasolina (mínimo 5L)", Toast.LENGTH_LONG).show()
             return
         }
 
-        val puntosParada = paradasSeleccionadas.map {
-            GeoPoint(it.position.latitude, it.position.longitude)
-        }
-
+        val paradasData = paradasSeleccionadas.map { ParadaData(it.title ?: "Parada", it.position.latitude, it.position.longitude) }
         val timestamp = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+        
         val nuevaRuta = hashMapOf(
-            "titulo" to "Ruta $timestamp",
+            "nombre" to "Ruta $timestamp",
             "choferId" to chofer.id,
-            "nombreChofer" to chofer.nombreCompleto,
-            "despachadorId" to (auth.currentUser?.uid ?: ""),
-            "unidadId" to (unidadSeleccionada?.id ?: ""),
-            "placaUnidad" to (unidadSeleccionada?.placa ?: ""),
+            "chofer" to chofer.nombreCompleto, 
+            "unidadId" to unidad.id,
+            "unidadPlaca" to unidad.placa,
             "estado" to "pendiente",
-            "fechaInicio" to Timestamp.now(),
-            "puntosParada" to puntosParada,
-            "cantidadParadas" to puntosParada.size
+            "completado" to false, 
+            "fechaCreacion" to Timestamp.now(),
+            "paradas" to paradasData
         )
 
-        db.collection("viajes").add(nuevaRuta).addOnSuccessListener {
-            // Actualizar estados para que no aparezcan como disponibles
+        db.collection("rutas").add(nuevaRuta).addOnSuccessListener {
             db.collection("usuarios").document(chofer.id).update("estado", "1")
-            
-            //Asignar chofer a la unidad en la base de datos
-            db.collection("unidades").document(unidadSeleccionada!!.id).update(
-                "estado", "En ruta",
-                "choferIdAsignado", chofer.id,
-                "nombreChoferAsignado", chofer.nombreCompleto
-            )
-            
-            Toast.makeText(context, "Ruta asignada al chofer correctamente", Toast.LENGTH_SHORT).show()
+            db.collection("unidades").document(unidad.id).update("estado", "En ruta")
+            Toast.makeText(context, "Ruta asignada", Toast.LENGTH_SHORT).show()
             layoutMapa.visibility = View.GONE
             layoutLista.visibility = View.VISIBLE
             limpiarMapa()
-        }.addOnFailureListener { e ->
-            Toast.makeText(context, "Error al asignar: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun limpiarMapa() {
-        val count = paradasSeleccionadas.size
         paradasSeleccionadas.forEach { it.remove() }
         paradasSeleccionadas.clear()
         poiMarkers.forEach { it.remove() }
         poiMarkers.clear()
         poliLineaRuta?.remove()
-        paradaAdapter.notifyItemRangeRemoved(0, count)
+        paradaAdapter.updateData(paradasSeleccionadas)
     }
 
-    private inner class PoiSmallAdapter(
-        private var pois: List<PuntoInteres>,
-        private val onPoiClick: (PuntoInteres) -> Unit
-    ) : RecyclerView.Adapter<PoiSmallAdapter.ViewHolder>() {
-
-        inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-            val tvName: TextView = view.findViewById(R.id.tvPoiNameSmall)
-        }
-
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_poi_small, parent, false)
-            return ViewHolder(view)
-        }
-
+    private inner class PoiSmallAdapter(private var pois: List<PuntoInteres>, private val onPoiClick: (PuntoInteres) -> Unit) : RecyclerView.Adapter<PoiSmallAdapter.ViewHolder>() {
+        inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) { val tvName: TextView = view.findViewById(R.id.tvPoiNameSmall) }
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = ViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.item_poi_small, parent, false))
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val poi = pois[position]
             holder.tvName.text = poi.nombre
             holder.itemView.setOnClickListener { onPoiClick(poi) }
         }
-
         override fun getItemCount() = pois.size
-
-        fun updatePois(newPois: List<PuntoInteres>) {
-            pois = newPois
-            notifyDataSetChanged()
-        }
+        fun updatePois(newPois: List<PuntoInteres>) { pois = newPois; notifyDataSetChanged() }
     }
 
-    private inner class UnidadCompactAdapter(
-        private var unidades: List<Unidad>,
-        private val onUnidadClick: (Unidad) -> Unit
-    ) : RecyclerView.Adapter<UnidadCompactAdapter.ViewHolder>() {
-
+    private inner class UnidadCompactAdapter(private var unidades: List<Unidad>, private val onUnidadClick: (Unidad) -> Unit) : RecyclerView.Adapter<UnidadCompactAdapter.ViewHolder>() {
         inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val tvEco: TextView = view.findViewById(R.id.tvNumEconomicoCompact)
             val tvPlaca: TextView = view.findViewById(R.id.tvPlacaCompact)
         }
-
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_unidad_compact, parent, false)
-            return ViewHolder(view)
-        }
-
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = ViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.item_unidad_compact, parent, false))
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-            val unidad = unidades[position]
-            holder.tvEco.text = unidad.numeroEconomico
-            holder.tvPlaca.text = unidad.placa
-            holder.itemView.setOnClickListener { onUnidadClick(unidad) }
+            val u = unidades[position]
+            holder.tvEco.text = u.numeroEconomico
+            holder.tvPlaca.text = u.placa
+            holder.itemView.setOnClickListener { onUnidadClick(u) }
         }
-
         override fun getItemCount() = unidades.size
-
-        fun updateUnidades(newList: List<Unidad>) {
-            unidades = newList
-            notifyDataSetChanged()
-        }
+        fun updateUnidades(newList: List<Unidad>) { unidades = newList; notifyDataSetChanged() }
     }
 }

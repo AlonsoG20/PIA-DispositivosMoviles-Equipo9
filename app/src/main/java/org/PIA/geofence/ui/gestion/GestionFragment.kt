@@ -7,10 +7,13 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
@@ -52,7 +55,6 @@ class GestionFragment : Fragment() {
     }
 
     private fun setupSections(view: View) {
-        // 1. Solicitudes (Sin Rol)
         val headerSinRol = view.findViewById<LinearLayout>(R.id.layoutHeaderAsignar)
         val rvSinRol = view.findViewById<RecyclerView>(R.id.rvUsuariosSinRol)
         val iconSinRol = view.findViewById<ImageView>(R.id.ivExpandIcon)
@@ -67,13 +69,15 @@ class GestionFragment : Fragment() {
             iconSinRol.setImageResource(if (isSinRolExpanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more)
         }
 
-        // 2. Unidades (Flota)
         val headerUnidades = view.findViewById<LinearLayout>(R.id.layoutHeaderUnidades)
         val rvUnidades = view.findViewById<RecyclerView>(R.id.rvUnidades)
         val iconUnidades = view.findViewById<ImageView>(R.id.ivExpandIconUnidades)
         val btnAdd = view.findViewById<Button>(R.id.btnAddUnidad)
 
-        adapterUnidades = UnidadAdapter(emptyList())
+        // CORRECCIÓN: Pasar la función showRefuelDialog al adaptador
+        adapterUnidades = UnidadAdapter(emptyList()) { unidad ->
+            showRefuelDialog(unidad)
+        }
         rvUnidades.layoutManager = LinearLayoutManager(context)
         rvUnidades.adapter = adapterUnidades
 
@@ -84,7 +88,6 @@ class GestionFragment : Fragment() {
             iconUnidades.setImageResource(if (isUnidadesExpanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more)
         }
 
-        // 3. Personal Registrado (Activo)
         val headerPersonal = view.findViewById<LinearLayout>(R.id.layoutHeaderPersonal)
         val rvPersonal = view.findViewById<RecyclerView>(R.id.rvPersonal)
         val iconPersonal = view.findViewById<ImageView>(R.id.ivExpandIconPersonal)
@@ -103,7 +106,6 @@ class GestionFragment : Fragment() {
             iconPersonal.setImageResource(if (isPersonalExpanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more)
         }
 
-        // 4. Personal Inactivo
         val headerInactivos = view.findViewById<LinearLayout>(R.id.layoutHeaderInactivos)
         val rvInactivos = view.findViewById<RecyclerView>(R.id.rvChoferesInactivos)
         val iconInactivos = view.findViewById<ImageView>(R.id.ivExpandIconInactivos)
@@ -123,6 +125,38 @@ class GestionFragment : Fragment() {
         }
     }
 
+    private fun showRefuelDialog(unidad: Unidad) {
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_add_unidad, null)
+        val etGas = dialogView.findViewById<TextInputEditText>(R.id.etPlaca)
+        val tilGas = dialogView.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.tilPlaca)
+        
+        tilGas.hint = "Litros a cargar"
+        etGas.inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+        
+        dialogView.findViewById<View>(R.id.tilEconomico).visibility = View.GONE
+        dialogView.findViewById<View>(R.id.tilModelo).visibility = View.GONE
+        dialogView.findViewById<TextView>(R.id.tvDialogTitle).text = "Cargar Gasolina"
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Cargar Gasolina - U-${unidad.numeroEconomico}")
+            .setView(dialogView)
+            .setPositiveButton("Cargar") { _, _ ->
+                val litrosStr = etGas.text.toString()
+                if (litrosStr.isNotEmpty()) {
+                    val litros = litrosStr.toDoubleOrNull() ?: 0.0
+                    val nuevaGasolina = (unidad.gasolinaActual + litros).coerceAtMost(unidad.capacidadMaxima)
+                    
+                    db.collection("unidades").document(unidad.id)
+                        .update("gasolinaActual", nuevaGasolina)
+                        .addOnSuccessListener {
+                            if (isAdded) Toast.makeText(context, "Gasolina cargada con éxito", Toast.LENGTH_SHORT).show()
+                        }
+                }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
     private fun loadData() {
         sinRolListener = db.collection("usuarios")
             .whereEqualTo("rol", "sinRol")
@@ -134,7 +168,9 @@ class GestionFragment : Fragment() {
         unidadesListener = db.collection("unidades")
             .orderBy("placa", Query.Direction.ASCENDING)
             .addSnapshotListener { snapshot, _ ->
-                val list = snapshot?.toObjects(Unidad::class.java) ?: emptyList()
+                val list = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(Unidad::class.java)?.apply { id = doc.id }
+                } ?: emptyList()
                 adapterUnidades.updateUnidades(list)
             }
 
@@ -142,54 +178,26 @@ class GestionFragment : Fragment() {
             .whereIn("rol", listOf("chofer", "despachador"))
             .addSnapshotListener { snapshot, _ ->
                 val list = snapshot?.toObjects(User::class.java) ?: emptyList()
-                
-                // Personal Activo (Estado != "2")
                 val activos = list.filter { it.estado != "2" }
                 adapterPersonal.updateUsers(activos)
-                
-                // Personal Inactivo (Estado == "2")
                 val inactivos = list.filter { it.estado == "2" }
                 adapterInactivos.updateUsers(inactivos)
             }
     }
 
     private fun toggleUserStatus(user: User) {
-        // "2" es Fuera de Turno. Cambiamos a "0" (Disponible) o viceversa.
         val newEstado = if (user.estado == "2") "0" else "2"
-        
-        db.collection("usuarios").document(user.id)
-            .update("estado", newEstado)
-            .addOnSuccessListener {
-                val msg = if (newEstado == "2") "${user.nombre} ahora está Fuera de Turno" else "${user.nombre} ha entrado en Turno"
-                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-            }
-            .addOnFailureListener {
-                Toast.makeText(context, "Error al actualizar turno", Toast.LENGTH_SHORT).show()
-            }
+        db.collection("usuarios").document(user.id).update("estado", newEstado)
     }
 
     private fun changeUserRole(user: User, newRole: String) {
-        db.collection("usuarios").document(user.id)
-            .update("rol", newRole)
-            .addOnSuccessListener {
-                Toast.makeText(context, "Rol de ${user.nombre} cambiado a ${newRole.replaceFirstChar { it.uppercase() }}", Toast.LENGTH_SHORT).show()
-            }
-            .addOnFailureListener {
-                Toast.makeText(context, "Error al cambiar rol", Toast.LENGTH_SHORT).show()
-            }
+        db.collection("usuarios").document(user.id).update("rol", newRole)
     }
 
     private fun assignRole(user: User, newRole: String) {
         val updates = mutableMapOf<String, Any>("rol" to newRole)
-        if (newRole == "chofer") {
-            updates["estado"] = "0" // Por defecto disponible al asignar rol
-        }
-
-        db.collection("usuarios").document(user.id)
-            .update(updates)
-            .addOnSuccessListener {
-                Toast.makeText(context, "Rol asignado con éxito", Toast.LENGTH_SHORT).show()
-            }
+        if (newRole == "chofer") updates["estado"] = "0"
+        db.collection("usuarios").document(user.id).update(updates)
     }
 
     override fun onDestroyView() {
