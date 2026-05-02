@@ -120,13 +120,12 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
             if (!rutaIniciada && ultimoIndiceRecorrido == 0) {
                 val esRapida = polyline == poliLineaRapida
                 puntosCaminoSeleccionado = if (esRapida) puntosRutaRapida else puntosRutaAlterna
+                esRutaRapidaSeleccionada = esRapida
                 actualizarEstilos()
                 Toast.makeText(context, if (esRapida) "Ruta Principal seleccionada" else "Ruta Alterna seleccionada", Toast.LENGTH_SHORT).show()
             }
         }
     }
-
-    private fun escucharViajeAsignado() {} // Omitido por brevedad, se usa escucharRutasAsignadas
 
     private fun escucharRutasAsignadas() {
         val userId = auth.currentUser?.uid ?: return
@@ -217,7 +216,7 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
                 "combustible" to "0.0"
             )
             db.collection("viajes").document(ruta.id).set(historialData)
-            db.collection("usuarios").document(userId).update("estado", "1") // Ocupado
+            db.collection("usuarios").document(userId).update("estado", "1")
             if (isAdded) Toast.makeText(requireContext(), "Ruta aceptada", Toast.LENGTH_SHORT).show()
         }
     }
@@ -243,7 +242,6 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
 
         Thread {
             try {
-                // 1. RUTA VERDE: Estándar rápida
                 val resA = DirectionsApi.newRequest(geoContext).mode(TravelMode.DRIVING)
                     .origin(origin).destination(destination).waypoints(*waypointsNormal)
                     .departureTime(Instant.now()).await()
@@ -251,17 +249,14 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
                 if (resA.routes.isNotEmpty()) {
                     val pathA = resA.routes[0].overviewPolyline.decodePath().map { LatLng(it.lat, it.lng) }
                     
-                    // 2. RUTA AZUL: Con micro-desvíos precisos por segmento
                     val waypointsForced = mutableListOf<String>()
                     for (i in 0 until paradasLatLng.size - 1) {
                         val p1 = paradasLatLng[i]
                         val p2 = paradasLatLng[i+1]
                         if (i > 0) waypointsForced.add("${p1.latitude},${p1.longitude}")
-                        
                         val vLat = p2.latitude - p1.latitude
                         val vLng = p2.longitude - p1.longitude
                         val dist = Math.sqrt(vLat * vLat + vLng * vLng)
-
                         if (dist > 0.0035) { 
                             val offsetScale = 0.0015 
                             val midLat = (p1.latitude + p2.latitude) / 2 + (-vLng / dist * offsetScale)
@@ -388,7 +383,7 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
             val dist = FloatArray(1)
             android.location.Location.distanceBetween(pos.latitude, pos.longitude, p.latitud, p.longitud, dist)
             
-            // Radio: 20m para destino final, 75m para intermedias
+            // Radio de detección: 20 metros para el destino final
             val radio = if (paradasCompletadas == paradas.size - 1) 20 else 75
             
             if (dist[0] < radio) {
@@ -466,21 +461,30 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
     }
 
     private fun actualizarHistorialFinal(rutaId: String) {
-        val km = if (esRutaRapidaSeleccionada) kmRutaRapida else kmRutaAlterna
-        val combustibleDouble = km * 0.12
-        val updates = hashMapOf(
-            "estado" to "completada",
-            "distancia" to "%.1f km".format(km),
-            "cantidadParadas" to paradasCompletadas,
-            "costo" to (km * 15).toInt().toString(),
-            "combustible" to "%.2f".format(combustibleDouble),
-            "fechaFin" to com.google.firebase.Timestamp.now()
-        )
-        db.collection("rutas").document(rutaId).update("estado", "completada", "completado", true)
-        db.collection("viajes").document(rutaId).update(updates as Map<String, Any>)
+        val unidadId = rutaAsignada?.unidadId ?: return
         
-        rutaAsignada?.unidadId?.let { uid ->
-            db.collection("unidades").document(uid).update("gasolinaActual", FieldValue.increment(-combustibleDouble))
+        db.collection("unidades").document(unidadId).get().addOnSuccessListener { doc ->
+            val unidad = doc.toObject(Unidad::class.java)
+            val consumoBase = unidad?.consumoPorKm ?: 0.12
+            val precioBase = 15.0 // Precio base fijo por km
+            
+            val km = if (esRutaRapidaSeleccionada) kmRutaRapida else kmRutaAlterna
+            val combustibleDouble = km * consumoBase
+            val costoTotal = km * precioBase
+
+            val updates = hashMapOf(
+                "estado" to "completada",
+                "distancia" to "%.1f km".format(km),
+                "cantidadParadas" to paradasCompletadas,
+                "costo" to costoTotal.toInt().toString(),
+                "combustible" to "%.2f".format(combustibleDouble),
+                "fechaFin" to com.google.firebase.Timestamp.now()
+            )
+            
+            db.collection("rutas").document(rutaId).update("estado", "completada", "completado", true)
+            db.collection("viajes").document(rutaId).update(updates as Map<String, Any>)
+            
+            db.collection("unidades").document(unidadId).update("gasolinaActual", FieldValue.increment(-combustibleDouble))
         }
     }
 

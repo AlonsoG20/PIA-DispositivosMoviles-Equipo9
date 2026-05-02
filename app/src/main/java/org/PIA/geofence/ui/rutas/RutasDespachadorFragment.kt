@@ -214,7 +214,7 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
                         }
                         override fun onBindViewHolder(holder: ChoferViewHolder, position: Int) {
                             val user = disponibles[position]
-                            holder.tvName.text = user.nombreCompleto
+                            holder.tvNombre.text = user.nombreCompleto
                             holder.tvEstado.text = "Disponible"
                             holder.itemView.setOnClickListener { seleccionarChofer(user) }
                         }
@@ -226,7 +226,7 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
     }
 
     class ChoferViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val tvName: TextView = view.findViewById(R.id.tvChoferNombre)
+        val tvNombre: TextView = view.findViewById(R.id.tvChoferNombre)
         val tvEstado: TextView = view.findViewById(R.id.tvChoferEstado)
     }
 
@@ -340,7 +340,7 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
             "despachadorNombre" to dispatcherName,
             "unidadId" to unidad.id,
             "unidadPlaca" to unidad.placa,
-            "unidadEco" to unidad.numeroEconomico,
+            "unidadEco" to unidad.numeroEconomico, // Guardamos el eco para el historial
             "estado" to "pendiente",
             "completado" to false, 
             "fechaCreacion" to Timestamp.now(),
@@ -367,11 +367,11 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
     }
 
     private inner class PoiSmallAdapter(private var pois: List<PuntoInteres>, private val onPoiClick: (PuntoInteres) -> Unit) : RecyclerView.Adapter<PoiSmallAdapter.ViewHolder>() {
-        inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) { val tvName: TextView = view.findViewById(R.id.tvPoiNameSmall) }
+        inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) { val tvNombre: TextView = view.findViewById(R.id.tvPoiNameSmall) }
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = ViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.item_poi_small, parent, false))
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val poi = pois[position]
-            holder.tvName.text = poi.nombre
+            holder.tvNombre.text = poi.nombre
             holder.itemView.setOnClickListener { onPoiClick(poi) }
         }
         override fun getItemCount() = pois.size

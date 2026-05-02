@@ -107,7 +107,6 @@ class ControlDespachadorFragment : Fragment() {
     }
 
     private fun showRefuelDialog(unidad: Unidad) {
-        // CORRECCIÓN DEFINITIVA: EditText simple sin inflar el layout de creación
         val input = TextInputEditText(requireContext())
         input.hint = "Litros a cargar"
         input.inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
@@ -121,7 +120,7 @@ class ControlDespachadorFragment : Fragment() {
 
         MaterialAlertDialogBuilder(requireContext())
             .setTitle("Cargar Gasolina - U-${unidad.numeroEconomico}")
-            .setMessage("Nivel actual: ${unidad.gasolinaActual.toInt()}L / ${unidad.capacidadMaxima.toInt()}L")
+            .setMessage("Nivel actual: ${"%.1f".format(unidad.gasolinaActual)}L / ${unidad.capacidadMaxima.toInt()}L")
             .setView(container)
             .setPositiveButton("Cargar") { _, _ ->
                 val litrosStr = input.text.toString()
@@ -195,6 +194,9 @@ class ControlDespachadorFragment : Fragment() {
         val etPlaca = dialogView.findViewById<TextInputEditText>(R.id.etPlaca)
         val etEconomico = dialogView.findViewById<TextInputEditText>(R.id.etEconomico)
         val etModelo = dialogView.findViewById<TextInputEditText>(R.id.etModelo)
+        val etConsumo = dialogView.findViewById<TextInputEditText>(R.id.etConsumo)
+        val etCapacidad = dialogView.findViewById<TextInputEditText>(R.id.etCapacidad)
+        
         val btnCancelar = dialogView.findViewById<Button>(R.id.btnCancelar)
         val btnGuardar = dialogView.findViewById<Button>(R.id.btnGuardar)
 
@@ -208,9 +210,11 @@ class ControlDespachadorFragment : Fragment() {
             val placa = etPlaca.text.toString().trim().uppercase()
             val economico = etEconomico.text.toString().trim()
             val modelo = etModelo.text.toString().trim()
+            val consumo = etConsumo.text.toString().toDoubleOrNull() ?: 0.12
+            val capacidad = etCapacidad.text.toString().toDoubleOrNull() ?: 100.0
 
             if (placa.isEmpty() || economico.isEmpty() || modelo.isEmpty()) {
-                Toast.makeText(context, "Por favor llena todos los campos", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Por favor llena los campos obligatorios", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
@@ -220,8 +224,9 @@ class ControlDespachadorFragment : Fragment() {
                 "modelo" to modelo,
                 "estado" to "Disponible",
                 "conductorAsignado" to "",
-                "gasolinaActual" to 100.0,
-                "capacidadMaxima" to 100.0,
+                "gasolinaActual" to capacidad, // Inicia lleno
+                "capacidadMaxima" to capacidad,
+                "consumoPorKm" to consumo,
                 "ultimaActualizacion" to Timestamp.now()
             )
 

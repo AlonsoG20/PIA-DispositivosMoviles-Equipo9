@@ -16,5 +16,6 @@ data class Unidad(
     val choferIdAsignado: String = "",
     val nombreChoferAsignado: String = "",
     val gasolinaActual: Double = 0.0,
-    val capacidadMaxima: Double = 100.0 // Límite por defecto
+    val capacidadMaxima: Double = 100.0,
+    val consumoPorKm: Double = 0.12 // Litros por km (Personalizado por unidad)
 )
