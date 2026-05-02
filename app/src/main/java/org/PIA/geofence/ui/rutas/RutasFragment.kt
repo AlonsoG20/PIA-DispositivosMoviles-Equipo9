@@ -114,9 +114,10 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
 
         mMap.setOnPolylineClickListener { polyline ->
             if (!rutaIniciada && ultimoIndiceRecorrido == 0) {
-                puntosCaminoSeleccionado = if (polyline == poliLineaRapida) puntosRutaRapida else puntosRutaAlterna
+                val esRapida = polyline == poliLineaRapida
+                puntosCaminoSeleccionado = if (esRapida) puntosRutaRapida else puntosRutaAlterna
                 actualizarEstilos()
-                Toast.makeText(context, "Trayecto seleccionado", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, if (esRapida) "Ruta Rápida seleccionada" else "Ruta Alterna seleccionada", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -163,13 +164,13 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
             "en_progreso" -> {
                 btnAceptarRuta.visibility = View.GONE
                 btnIniciarRuta.visibility = View.VISIBLE
-                if (!rutaIniciada) {
+                if (rutaIniciada) {
+                    btnIniciarRuta.text = "Pausar Recorrido"
+                    btnFinalizarRuta.visibility = View.GONE
+                } else {
                     btnIniciarRuta.text = "Reanudar Recorrido"
                     btnFinalizarRuta.visibility = View.VISIBLE
                     btnFinalizarRuta.text = "Abandonar"
-                } else {
-                    btnIniciarRuta.text = "Pausar Recorrido"
-                    btnFinalizarRuta.visibility = View.GONE
                 }
                 tvEstadoRuta.text = "Ruta en Progreso: ${ruta.nombre}"
             }
@@ -248,11 +249,13 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
                         val p1 = paradasLatLng[i]
                         val p2 = paradasLatLng[i+1]
                         if (i > 0) waypointsForced.add("${p1.latitude},${p1.longitude}")
+                        
                         val vLat = p2.latitude - p1.latitude
                         val vLng = p2.longitude - p1.longitude
                         val dist = Math.sqrt(vLat * vLat + vLng * vLng)
+
                         if (dist > 0.002) { 
-                            val offsetScale = 0.0025 
+                            val offsetScale = 0.0018 // Factor de desvío exacto para calles paralelas
                             val midLat = (p1.latitude + p2.latitude) / 2 + (-vLng / dist * offsetScale)
                             val midLng = (p1.longitude + p2.longitude) / 2 + (vLat / dist * offsetScale)
                             waypointsForced.add("via:$midLat,$midLng")
@@ -314,6 +317,11 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
         
         db.collection("rutas").document(rutaAsignada!!.id).update("estado", "en_progreso")
         db.collection("viajes").document(rutaAsignada!!.id).update("estado", "en progreso")
+        
+        // Cambiar estado de la unidad a "En ruta"
+        rutaAsignada?.unidadId?.let { uid ->
+            db.collection("unidades").document(uid).update("estado", "En ruta")
+        }
         
         if (markerVehiculo == null) {
             markerVehiculo = mMap.addMarker(MarkerOptions().position(puntosCaminoSeleccionado[ultimoIndiceRecorrido]).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)).anchor(0.5f, 0.5f).zIndex(20f))
@@ -410,11 +418,22 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
         if (guardar && rutaAsignada != null) {
             actualizarHistorialFinal(rutaId)
             db.collection("usuarios").document(userId).update("estado", "0")
+            
+            // Cambiar estado de la unidad a "Disponible"
+            rutaAsignada?.unidadId?.let { uid ->
+                db.collection("unidades").document(uid).update("estado", "Disponible")
+            }
+            
             tvEstadoRuta.text = "Viaje Finalizado"
         } else {
             tvEstadoRuta.text = "Ruta Interrumpida"
             db.collection("rutas").document(rutaId).update("estado", "cancelada")
             db.collection("usuarios").document(userId).update("estado", "0")
+            
+            // Cambiar estado de la unidad a "Disponible" incluso si se interrumpe
+            rutaAsignada?.unidadId?.let { uid ->
+                db.collection("unidades").document(uid).update("estado", "Disponible")
+            }
         }
         btnIniciarRuta.isEnabled = false
         btnFinalizarRuta.visibility = View.VISIBLE
@@ -438,6 +457,11 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
     private fun actualizarEstadoDisponible() {
         val userId = auth.currentUser?.uid ?: return
         db.collection("usuarios").document(userId).update("estado", "0")
+        
+        // También liberar la unidad si hay una activa
+        rutaAsignada?.unidadId?.let { uid ->
+            db.collection("unidades").document(uid).update("estado", "Disponible")
+        }
     }
 
     private fun limpiarPantallaTotalmente() {
