@@ -14,6 +14,7 @@ import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
+import androidx.core.graphics.ColorUtils
 import androidx.fragment.app.Fragment
 import com.google.android.gms.location.*
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -30,6 +31,7 @@ import com.google.maps.model.TravelMode
 import org.PIA.geofence.R
 import org.PIA.geofence.data.Ruta
 import org.PIA.geofence.data.Unidad
+import java.time.Instant
 import java.util.*
 
 class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
@@ -51,11 +53,22 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
     private var rutaIniciada = false
     private var paradasCompletadas = 0
     private var markerVehiculo: Marker? = null
-    private var poliLineaRuta: Polyline? = null
+    private var markersParadas = mutableListOf<Marker>()
+    private var poliLineaRapida: Polyline? = null
+    private var poliLineaAlterna: Polyline? = null
     private var animatorVehiculo: ValueAnimator? = null
-    private var puntosCaminoReal = mutableListOf<LatLng>()
+    
+    private var puntosRutaRapida = mutableListOf<LatLng>()
+    private var puntosRutaAlterna = mutableListOf<LatLng>()
+    private var puntosCaminoSeleccionado = mutableListOf<LatLng>()
+    private var ultimoIndiceRecorrido = 0
+    
+    private var kmRutaRapida: Double = 0.0
+    private var kmRutaAlterna: Double = 0.0
 
     private val apiKey = "AIzaSyAjjiNfvcx-3pSKpNULTceVeX46YxLfItc"
+    private val PATTERN_ALTERNATE = listOf(Dash(40f), Gap(20f))
+    private val MONTERREY = LatLng(25.6866, -100.3161)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -73,16 +86,39 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
         escucharRutasAsignadas()
 
         btnAceptarRuta.setOnClickListener { aceptarRuta() }
-        btnIniciarRuta.setOnClickListener { iniciarRecorrido() }
-        btnFinalizarRuta.setOnClickListener { finalizarRuta(true) }
+        
+        btnIniciarRuta.setOnClickListener { 
+            val textoBoton = btnIniciarRuta.text.toString()
+            when (textoBoton) {
+                "Terminar ruta" -> finalizarRuta(true)
+                "Pausar Recorrido" -> pausarRecorrido()
+                else -> iniciarRecorrido()
+            }
+        }
+        
+        btnFinalizarRuta.setOnClickListener { 
+            if (btnFinalizarRuta.text == "Salir") {
+                limpiarPantallaTotalmente()
+            } else {
+                finalizarRuta(false) // Abandonar
+            }
+        }
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(MONTERREY, 12f))
         if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             mMap.isMyLocationEnabled = true
         }
-        rutaAsignada?.let { if (it.estado == "aceptada") trazarRutaEnMapa(it) }
+
+        mMap.setOnPolylineClickListener { polyline ->
+            if (!rutaIniciada && ultimoIndiceRecorrido == 0) {
+                puntosCaminoSeleccionado = if (polyline == poliLineaRapida) puntosRutaRapida else puntosRutaAlterna
+                actualizarEstilos()
+                Toast.makeText(context, "Trayecto seleccionado", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun escucharRutasAsignadas() {
@@ -93,8 +129,11 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
             .addSnapshotListener { snapshot, _ ->
                 val rutaDoc = snapshot?.documents?.firstOrNull()
                 if (rutaDoc != null) {
-                    rutaAsignada = rutaDoc.toObject(Ruta::class.java)?.apply { id = rutaDoc.id }
-                    actualizarUIConRuta(rutaAsignada!!)
+                    val nuevaRuta = rutaDoc.toObject(Ruta::class.java)?.apply { id = rutaDoc.id }
+                    if (nuevaRuta?.id != rutaAsignada?.id || nuevaRuta?.estado != rutaAsignada?.estado) {
+                        rutaAsignada = nuevaRuta
+                        actualizarUIConRuta(rutaAsignada!!)
+                    }
                 } else {
                     rutaAsignada = null
                     mostrarSinRuta()
@@ -115,14 +154,23 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
             "aceptada" -> {
                 btnAceptarRuta.visibility = View.GONE
                 btnIniciarRuta.visibility = View.VISIBLE
+                btnIniciarRuta.text = "Iniciar Recorrido"
                 btnFinalizarRuta.visibility = View.VISIBLE
-                tvParadaActual.text = "Ruta lista para iniciar"
-                trazarRutaEnMapa(ruta)
+                btnFinalizarRuta.text = "Abandonar"
+                tvParadaActual.text = "Toca un camino para elegirlo"
+                trazarRutasRealmenteDiferentes(ruta)
             }
             "en_progreso" -> {
                 btnAceptarRuta.visibility = View.GONE
-                btnIniciarRuta.visibility = View.GONE
-                btnFinalizarRuta.visibility = View.VISIBLE
+                btnIniciarRuta.visibility = View.VISIBLE
+                if (!rutaIniciada) {
+                    btnIniciarRuta.text = "Reanudar Recorrido"
+                    btnFinalizarRuta.visibility = View.VISIBLE
+                    btnFinalizarRuta.text = "Abandonar"
+                } else {
+                    btnIniciarRuta.text = "Pausar Recorrido"
+                    btnFinalizarRuta.visibility = View.GONE
+                }
                 tvEstadoRuta.text = "Ruta en Progreso: ${ruta.nombre}"
             }
         }
@@ -130,21 +178,21 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
 
     private fun mostrarSinRuta() {
         if (!isAdded) return
-        tvEstadoRuta.text = "Sin rutas asignadas"
+        tvEstadoRuta.text = "Sin asignar ruta"
         tvParadaActual.text = "Espera a que un despachador te asigne trabajo"
         btnAceptarRuta.visibility = View.GONE
         btnIniciarRuta.visibility = View.GONE
         btnFinalizarRuta.visibility = View.GONE
         if (::mMap.isInitialized) mMap.clear()
-        puntosCaminoReal.clear()
+        markersParadas.clear()
+        puntosCaminoSeleccionado.clear()
+        ultimoIndiceRecorrido = 0
     }
 
     private fun aceptarRuta() {
         val ruta = rutaAsignada ?: return
         val userId = auth.currentUser?.uid ?: return
-        
         db.collection("rutas").document(ruta.id).update("estado", "aceptada").addOnSuccessListener {
-            // REGISTRO INICIAL EN HISTORIAL (VIAJES) con datos de chofer y unidad
             val historialData = hashMapOf(
                 "choferId" to userId,
                 "nombreChofer" to (ruta.choferNombre ?: ""),
@@ -160,53 +208,135 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
                 "combustible" to "0.0"
             )
             db.collection("viajes").document(ruta.id).set(historialData)
+            db.collection("usuarios").document(userId).update("estado", "1") // Ocupado
             if (isAdded) Toast.makeText(requireContext(), "Ruta aceptada", Toast.LENGTH_SHORT).show()
         }
     }
 
-    private fun trazarRutaEnMapa(ruta: Ruta) {
+    private fun trazarRutasRealmenteDiferentes(ruta: Ruta) {
         if (!::mMap.isInitialized || ruta.paradas.isEmpty()) return
         mMap.clear()
-        ruta.paradas.forEach { parada ->
-            mMap.addMarker(MarkerOptions().position(LatLng(parada.latitud, parada.longitud)).title(parada.nombre).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN)))
+        markersParadas.clear()
+        
+        val paradasLatLng = ruta.paradas.map { LatLng(it.latitud, it.longitud) }
+        paradasLatLng.forEachIndexed { index, pos ->
+            val marker = mMap.addMarker(MarkerOptions().position(pos).title(ruta.paradas[index].nombre)
+                .icon(BitmapDescriptorFactory.defaultMarker(if (index == 0) BitmapDescriptorFactory.HUE_GREEN else BitmapDescriptorFactory.HUE_CYAN)))
+            marker?.let { markersParadas.add(it) }
         }
-        val context = GeoApiContext.Builder().apiKey(apiKey).build()
-        val origin = "${ruta.paradas.first().latitud},${ruta.paradas.first().longitud}"
-        val destination = "${ruta.paradas.last().latitud},${ruta.paradas.last().longitud}"
-        val intermediate = ruta.paradas.subList(1, ruta.paradas.size - 1).map { com.google.maps.model.LatLng(it.latitud, it.longitud) }.toTypedArray()
+
+        val geoContext = GeoApiContext.Builder().apiKey(apiKey).build()
+        val origin = "${paradasLatLng.first().latitude},${paradasLatLng.first().longitude}"
+        val destination = "${paradasLatLng.last().latitude},${paradasLatLng.last().longitude}"
+        val waypointsNormal = if (paradasLatLng.size > 2) {
+            paradasLatLng.subList(1, paradasLatLng.size - 1).map { "${it.latitude},${it.longitude}" }.toTypedArray()
+        } else emptyArray()
 
         Thread {
             try {
-                val result = DirectionsApi.newRequest(context).mode(TravelMode.DRIVING).origin(origin).destination(destination).waypoints(*intermediate).await()
-                if (result.routes.isNotEmpty()) {
-                    val path = result.routes[0].overviewPolyline.decodePath().map { LatLng(it.lat, it.lng) }
+                // 1. RUTA VERDE: Estándar rápida
+                val resA = DirectionsApi.newRequest(geoContext).mode(TravelMode.DRIVING)
+                    .origin(origin).destination(destination).waypoints(*waypointsNormal)
+                    .departureTime(Instant.now()).await()
+
+                if (resA.routes.isNotEmpty()) {
+                    val pathA = resA.routes[0].overviewPolyline.decodePath().map { LatLng(it.lat, it.lng) }
+                    
+                    // 2. RUTA AZUL: Con micro-desvíos precisos por segmento
+                    val waypointsForced = mutableListOf<String>()
+                    for (i in 0 until paradasLatLng.size - 1) {
+                        val p1 = paradasLatLng[i]
+                        val p2 = paradasLatLng[i+1]
+                        if (i > 0) waypointsForced.add("${p1.latitude},${p1.longitude}")
+                        val vLat = p2.latitude - p1.latitude
+                        val vLng = p2.longitude - p1.longitude
+                        val dist = Math.sqrt(vLat * vLat + vLng * vLng)
+                        if (dist > 0.002) { 
+                            val offsetScale = 0.0025 
+                            val midLat = (p1.latitude + p2.latitude) / 2 + (-vLng / dist * offsetScale)
+                            val midLng = (p1.longitude + p2.longitude) / 2 + (vLat / dist * offsetScale)
+                            waypointsForced.add("via:$midLat,$midLng")
+                        }
+                    }
+
+                    val resB = DirectionsApi.newRequest(geoContext).mode(TravelMode.DRIVING).origin(origin).destination(destination)
+                        .waypoints(*waypointsForced.toTypedArray())
+                        .avoid(DirectionsApi.RouteRestriction.HIGHWAYS).departureTime(Instant.now()).await()
+
                     activity?.runOnUiThread {
-                        puntosCaminoReal.clear()
-                        puntosCaminoReal.addAll(path)
-                        poliLineaRuta = mMap.addPolyline(PolylineOptions().addAll(path).color(Color.parseColor("#4CAF9E")).width(12f))
-                        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(path[0], 14f))
+                        puntosRutaRapida = pathA.toMutableList()
+                        kmRutaRapida = resA.routes[0].legs.sumOf { it.distance.inMeters.toDouble() } / 1000.0
+                        
+                        if (resB.routes.isNotEmpty()) {
+                            puntosRutaAlterna = resB.routes[0].overviewPolyline.decodePath().map { LatLng(it.lat, it.lng) }.toMutableList()
+                            kmRutaAlterna = resB.routes[0].legs.sumOf { it.distance.inMeters.toDouble() } / 1000.0
+                        } else puntosRutaAlterna = puntosRutaRapida.toMutableList()
+                        
+                        puntosCaminoSeleccionado = puntosRutaRapida
+                        dibujarLineas()
+                        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pathA[0], 14f))
                     }
                 }
-            } catch (e: Exception) { Log.e("Rutas", "Error trazar: ${e.message}") }
+            } catch (e: Exception) { Log.e("Rutas", "Error: ${e.message}") }
         }.start()
     }
 
+    private fun dibujarLineas() {
+        poliLineaRapida?.remove()
+        poliLineaAlterna?.remove()
+        poliLineaRapida = mMap.addPolyline(PolylineOptions().addAll(puntosRutaRapida).clickable(true))
+        poliLineaAlterna = mMap.addPolyline(PolylineOptions().addAll(puntosRutaAlterna).clickable(true))
+        actualizarEstilos()
+    }
+
+    private fun actualizarEstilos() {
+        val colorVerde = Color.parseColor("#4CAF50")
+        val colorAzul = Color.parseColor("#2196F3")
+        
+        val esRutaRapidaSeleccionada = puntosCaminoSeleccionado.size == puntosRutaRapida.size && 
+                                      (puntosCaminoSeleccionado.firstOrNull() == puntosRutaRapida.firstOrNull())
+
+        if (esRutaRapidaSeleccionada) {
+            poliLineaRapida?.apply { color = colorVerde; width = 8f; zIndex = 10f; pattern = null }
+            poliLineaAlterna?.apply { color = ColorUtils.setAlphaComponent(colorAzul, 200); width = 16f; zIndex = 5f; pattern = PATTERN_ALTERNATE }
+        } else {
+            poliLineaAlterna?.apply { color = colorAzul; width = 8f; zIndex = 10f; pattern = null }
+            poliLineaRapida?.apply { color = ColorUtils.setAlphaComponent(colorVerde, 200); width = 16f; zIndex = 5f; pattern = PATTERN_ALTERNATE }
+        }
+    }
+
     private fun iniciarRecorrido() {
-        if (puntosCaminoReal.isEmpty()) return
+        if (puntosCaminoSeleccionado.isEmpty()) return
         rutaIniciada = true
-        paradasCompletadas = 0
+        btnIniciarRuta.text = "Pausar Recorrido"
+        tvEstadoRuta.text = "En progreso"
+        btnFinalizarRuta.visibility = View.GONE
+        
         db.collection("rutas").document(rutaAsignada!!.id).update("estado", "en_progreso")
         db.collection("viajes").document(rutaAsignada!!.id).update("estado", "en progreso")
-        markerVehiculo = mMap.addMarker(MarkerOptions().position(puntosCaminoReal[0]).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)).anchor(0.5f, 0.5f))
-        animarVehiculo(0)
+        
+        if (markerVehiculo == null) {
+            markerVehiculo = mMap.addMarker(MarkerOptions().position(puntosCaminoSeleccionado[ultimoIndiceRecorrido]).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)).anchor(0.5f, 0.5f).zIndex(20f))
+        }
+        animarVehiculo(ultimoIndiceRecorrido)
+    }
+
+    private fun pausarRecorrido() {
+        rutaIniciada = false
+        animatorVehiculo?.cancel()
+        btnIniciarRuta.text = "Reanudar Recorrido"
+        tvEstadoRuta.text = "Ruta pausada"
+        btnFinalizarRuta.visibility = View.VISIBLE
+        btnFinalizarRuta.text = "Abandonar"
     }
 
     private fun animarVehiculo(index: Int) {
-        if (!rutaIniciada || index >= puntosCaminoReal.size - 1) { finalizarRuta(true); return }
-        val inicio = puntosCaminoReal[index]
-        val fin = puntosCaminoReal[index + 1]
+        if (!rutaIniciada || index >= puntosCaminoSeleccionado.size - 1) return
+        ultimoIndiceRecorrido = index
+        val inicio = puntosCaminoSeleccionado[index]
+        val fin = puntosCaminoSeleccionado[index + 1]
         animatorVehiculo = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 400
+            duration = 500
             interpolator = LinearInterpolator()
             addUpdateListener { animation ->
                 val f = animation.animatedValue as Float
@@ -215,100 +345,112 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
                 mMap.moveCamera(CameraUpdateFactory.newLatLng(pos))
                 verificarLlegadaAParada(pos)
             }
-            addListener(object : AnimatorListenerAdapter() { override fun onAnimationEnd(a: Animator) { if (rutaIniciada) animarVehiculo(index + 1) } })
+            addListener(object : AnimatorListenerAdapter() { 
+                override fun onAnimationEnd(a: Animator) { 
+                    if (rutaIniciada) animarVehiculo(index + 1) 
+                } 
+            })
             start()
         }
     }
 
     private fun verificarLlegadaAParada(pos: LatLng) {
-        rutaAsignada?.paradas?.forEachIndexed { index, parada ->
-            if (index > paradasCompletadas - 1) {
-                val distance = FloatArray(1)
-                android.location.Location.distanceBetween(pos.latitude, pos.longitude, parada.latitud, parada.longitud, distance)
-                if (distance[0] < 50) onParadaAlcanzada(index)
+        val paradas = rutaAsignada?.paradas ?: return
+        if (paradasCompletadas < paradas.size) {
+            val p = paradas[paradasCompletadas]
+            val dist = FloatArray(1)
+            android.location.Location.distanceBetween(pos.latitude, pos.longitude, p.latitud, p.longitud, dist)
+            
+            // Radio de detección: 40 metros para el destino final, 75 para intermedias
+            val radio = if (paradasCompletadas == paradas.size - 1) 40 else 75
+            
+            if (dist[0] < radio) {
+                paradasCompletadas++
+                tvParadasCompletadas.visibility = View.VISIBLE
+                tvParadasCompletadas.text = "$paradasCompletadas/${paradas.size} completadas"
+                
+                if (paradasCompletadas >= paradas.size) {
+                    rutaIniciada = false
+                    animatorVehiculo?.cancel()
+                    btnIniciarRuta.text = "Terminar ruta"
+                    btnIniciarRuta.isEnabled = true
+                    tvEstadoRuta.text = "¡Destino alcanzado!"
+                    btnFinalizarRuta.visibility = View.GONE
+                } else {
+                    tvParadaActual.text = "Próxima: ${paradas[paradasCompletadas].nombre}"
+                }
             }
         }
-    }
-
-    private fun onParadaAlcanzada(index: Int) {
-        if (index < paradasCompletadas) return
-        paradasCompletadas = index + 1
-        tvParadasCompletadas.visibility = View.VISIBLE
-        tvParadasCompletadas.text = "$paradasCompletadas/${rutaAsignada?.paradas?.size ?: 0} paradas completadas"
     }
 
     private fun finalizarRuta(guardar: Boolean) {
         val userId = auth.currentUser?.uid ?: return
         val rutaId = rutaAsignada?.id ?: return
-        val unidadId = rutaAsignada?.unidadId
-        val choferNombre = rutaAsignada?.choferNombre ?: "Chofer"
         rutaIniciada = false
+        animatorVehiculo?.cancel()
         
-        val updatesRuta = hashMapOf(
-            "estado" to "completada",
-            "completado" to true,
-            "fechaFin" to com.google.firebase.Timestamp.now()
-        )
-        db.collection("rutas").document(rutaId).update(updatesRuta as Map<String, Any>)
-        
-        db.collection("usuarios").document(userId).update("estado", "0")
-        
-        unidadId?.let { uid ->
-            db.collection("unidades").document(uid).get().addOnSuccessListener { doc ->
-                val u = doc.toObject(Unidad::class.java)
-                if (u != null) {
-                    val km = paradasCompletadas * 0.5
-                    val consumption = km * 1.0 // 1 litro por cada 1 km
-                    val nuevaGas = (u.gasolinaActual - consumption).coerceAtLeast(0.0)
-                    
-                    db.collection("unidades").document(uid).update("estado", "Disponible", "gasolinaActual", nuevaGas)
-                    
-                    // ALERTA DE TANQUE BAJO (RESERVA < 25%)
-                    if (nuevaGas < (u.capacidadMaxima * 0.25)) {
-                        val mensajeAlerta = "Unidad U-${u.numeroEconomico} con tanque bajo (${nuevaGas.toInt()}L)"
-                        
-                        // 1. Alerta para el panel de notificaciones rápidas
-                        val alerta = hashMapOf(
-                            "mensaje" to mensajeAlerta,
-                            "unidadEco" to (u.numeroEconomico),
-                            "fecha" to com.google.firebase.Timestamp.now(),
-                            "leida" to false
-                        )
-                        db.collection("alertas").add(alerta)
-                        
-                        // 2. Incidencia para el apartado de "Alertas Geofencing" (ReportesFragment)
-                        val incidencia = hashMapOf(
-                            "chofer" to choferNombre,
-                            "tipo" to "Tanque Bajo",
-                            "detalle" to mensajeAlerta,
-                            "fecha" to com.google.firebase.Timestamp.now(),
-                            "nivelPrioridad" to "Alta"
-                        )
-                        db.collection("incidencias").add(incidencia)
-                    }
-                }
-            }
+        val currentPos = markerVehiculo?.position
+        poliLineaRapida?.remove()
+        poliLineaAlterna?.remove()
+        markerVehiculo?.remove()
+        markerVehiculo = null
+
+        if (currentPos != null && puntosCaminoSeleccionado.isNotEmpty()) {
+            val traveled = puntosCaminoSeleccionado.subList(0, ultimoIndiceRecorrido + 1).toMutableList()
+            traveled.add(currentPos)
+            val remaining = mutableListOf(currentPos)
+            remaining.addAll(puntosCaminoSeleccionado.subList(ultimoIndiceRecorrido + 1, puntosCaminoSeleccionado.size))
+            val color = if (puntosCaminoSeleccionado.size == puntosRutaRapida.size) Color.parseColor("#4CAF50") else Color.parseColor("#2196F3")
+            if (traveled.size >= 2) mMap.addPolyline(PolylineOptions().addAll(traveled).color(color).width(8f).zIndex(10f))
+            if (remaining.size >= 2) mMap.addPolyline(PolylineOptions().addAll(remaining).color(Color.LTGRAY).width(8f).zIndex(5f))
         }
 
-        if (guardar) actualizarHistorialFinal(rutaId)
-        animatorVehiculo?.cancel()
-        markerVehiculo?.remove()
-        if (isAdded) Toast.makeText(requireContext(), "Ruta completada", Toast.LENGTH_SHORT).show()
+        markersParadas.forEachIndexed { i, m -> if (i >= paradasCompletadas) m.alpha = 0.4f }
+        
+        if (guardar && rutaAsignada != null) {
+            actualizarHistorialFinal(rutaId)
+            db.collection("usuarios").document(userId).update("estado", "0")
+            tvEstadoRuta.text = "Viaje Finalizado"
+        } else {
+            tvEstadoRuta.text = "Ruta Interrumpida"
+            db.collection("rutas").document(rutaId).update("estado", "cancelada")
+            db.collection("usuarios").document(userId).update("estado", "0")
+        }
+        btnIniciarRuta.isEnabled = false
+        btnFinalizarRuta.visibility = View.VISIBLE
+        btnFinalizarRuta.text = "Salir"
     }
 
     private fun actualizarHistorialFinal(rutaId: String) {
-        val km = paradasCompletadas * 0.5
-        val combustible = km * 1.0 // 1 km = 1 litro
-        val costo = combustible * 30 // 30 por cada litro
+        val km = if (puntosCaminoSeleccionado.size == puntosRutaRapida.size) kmRutaRapida else kmRutaAlterna
         val updates = hashMapOf(
-            "estado" to "completada", // Usar minúsculas para coincidir con el filtro de CuentaFragment
-            "distancia" to "%.1f".format(Locale.US, km),
+            "estado" to "completada",
+            "distancia" to "%.1f km".format(km),
             "cantidadParadas" to paradasCompletadas,
-            "costo" to costo.toInt().toString(),
-            "combustible" to "%.1f".format(Locale.US, combustible),
+            "costo" to (km * 15).toInt().toString(),
+            "combustible" to "%.2f".format(km * 0.12),
             "fechaFin" to com.google.firebase.Timestamp.now()
         )
+        db.collection("rutas").document(rutaId).update("estado", "completada", "completado", true)
         db.collection("viajes").document(rutaId).update(updates as Map<String, Any>)
+    }
+
+    private fun actualizarEstadoDisponible() {
+        val userId = auth.currentUser?.uid ?: return
+        db.collection("usuarios").document(userId).update("estado", "0")
+    }
+
+    private fun limpiarPantallaTotalmente() {
+        mMap.clear()
+        markersParadas.clear()
+        ultimoIndiceRecorrido = 0
+        paradasCompletadas = 0
+        puntosCaminoSeleccionado.clear()
+        rutaIniciada = false
+        animatorVehiculo?.cancel()
+        markerVehiculo = null
+        actualizarEstadoDisponible()
+        mostrarSinRuta()
     }
 
     override fun onDestroyView() { super.onDestroyView() ; rutaListener?.remove() }

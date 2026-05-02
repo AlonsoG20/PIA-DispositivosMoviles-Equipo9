@@ -28,7 +28,6 @@ class GestionFragment : Fragment() {
     private lateinit var adapterSinRol: UsersSinRolAdapter
     private lateinit var adapterUnidades: UnidadAdapter
     private lateinit var adapterPersonal: PersonalGestionAdapter
-    private lateinit var adapterInactivos: PersonalGestionAdapter
 
     private var sinRolListener: ListenerRegistration? = null
     private var unidadesListener: ListenerRegistration? = null
@@ -37,7 +36,6 @@ class GestionFragment : Fragment() {
     private var isSinRolExpanded = false
     private var isUnidadesExpanded = false
     private var isPersonalExpanded = false
-    private var isInactivosExpanded = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -56,6 +54,7 @@ class GestionFragment : Fragment() {
     }
 
     private fun setupSections(view: View) {
+        // 1. Solicitudes (Sin Rol)
         val headerSinRol = view.findViewById<LinearLayout>(R.id.layoutHeaderAsignar)
         val rvSinRol = view.findViewById<RecyclerView>(R.id.rvUsuariosSinRol)
         val iconSinRol = view.findViewById<ImageView>(R.id.ivExpandIcon)
@@ -70,6 +69,7 @@ class GestionFragment : Fragment() {
             iconSinRol.setImageResource(if (isSinRolExpanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more)
         }
 
+        // 2. Unidades (Flota)
         val headerUnidades = view.findViewById<LinearLayout>(R.id.layoutHeaderUnidades)
         val rvUnidades = view.findViewById<RecyclerView>(R.id.rvUnidades)
         val iconUnidades = view.findViewById<ImageView>(R.id.ivExpandIconUnidades)
@@ -88,6 +88,7 @@ class GestionFragment : Fragment() {
             iconUnidades.setImageResource(if (isUnidadesExpanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more)
         }
 
+        // 3. Personal Registrado
         val headerPersonal = view.findViewById<LinearLayout>(R.id.layoutHeaderPersonal)
         val rvPersonal = view.findViewById<RecyclerView>(R.id.rvPersonal)
         val iconPersonal = view.findViewById<ImageView>(R.id.ivExpandIconPersonal)
@@ -105,29 +106,9 @@ class GestionFragment : Fragment() {
             rvPersonal.visibility = if (isPersonalExpanded) View.VISIBLE else View.GONE
             iconPersonal.setImageResource(if (isPersonalExpanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more)
         }
-
-        val headerInactivos = view.findViewById<LinearLayout>(R.id.layoutHeaderInactivos)
-        val rvInactivos = view.findViewById<RecyclerView>(R.id.rvChoferesInactivos)
-        val iconInactivos = view.findViewById<ImageView>(R.id.ivExpandIconInactivos)
-
-        adapterInactivos = PersonalGestionAdapter(
-            emptyList(),
-            { user -> toggleUserStatus(user) },
-            { user, newRole -> changeUserRole(user, newRole) }
-        )
-        rvInactivos.layoutManager = LinearLayoutManager(context)
-        rvInactivos.adapter = adapterInactivos
-
-        headerInactivos.setOnClickListener {
-            isInactivosExpanded = !isInactivosExpanded
-            rvInactivos.visibility = if (isInactivosExpanded) View.VISIBLE else View.GONE
-            iconInactivos.setImageResource(if (isInactivosExpanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more)
-        }
     }
 
     private fun showRefuelDialog(unidad: Unidad) {
-        // CORRECCIÓN FINAL: Eliminar cualquier inflado de layout externo para evitar duplicados.
-        // Se construye el diálogo usando solo componentes creados por código.
         val context = requireContext()
         val input = TextInputEditText(context)
         input.hint = "Litros a cargar"
@@ -186,10 +167,9 @@ class GestionFragment : Fragment() {
             .whereIn("rol", listOf("chofer", "despachador"))
             .addSnapshotListener { snapshot, _ ->
                 val list = snapshot?.toObjects(User::class.java) ?: emptyList()
+                // Solo mostramos activos (estado != "2")
                 val activos = list.filter { it.estado != "2" }
                 adapterPersonal.updateUsers(activos)
-                val inactivos = list.filter { it.estado == "2" }
-                adapterInactivos.updateUsers(inactivos)
             }
     }
 
