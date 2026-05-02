@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.chip.Chip
 import org.PIA.geofence.R
 import org.PIA.geofence.data.Unidad
+import java.util.Locale
 
 class UnidadAdapter(
     private var unidades: List<Unidad>,
@@ -42,12 +43,16 @@ class UnidadAdapter(
         // Limpiar el apartado de conductor por ahora
         holder.tvConductor.text = "Conductor: (Sin asignar)"
 
-        // Información de Gasolina
+        // Información de Gasolina con decimales
         val gasActual = unidad.gasolinaActual
         val gasMax = unidad.capacidadMaxima
-        holder.tvGasInfo.text = "Combustible: ${gasActual.toInt()}/${gasMax.toInt()} L"
-        holder.pbGas.max = gasMax.toInt()
-        holder.pbGas.progress = gasActual.toInt()
+        
+        // Mostramos 1 decimal para mayor claridad
+        holder.tvGasInfo.text = String.format(Locale.US, "Combustible: %.1f / %.0f L", gasActual, gasMax)
+        
+        // El ProgressBar solo acepta Int, así que lo escalamos x10 para mantener la precisión visual del decimal
+        holder.pbGas.max = (gasMax * 10).toInt()
+        holder.pbGas.progress = (gasActual * 10).toInt()
 
         // Cambio de color dinámico de la barra
         val porcentaje = if (gasMax > 0) (gasActual / gasMax) else 0.0
