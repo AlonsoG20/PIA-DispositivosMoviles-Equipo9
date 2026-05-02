@@ -66,6 +66,7 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
     
     private var kmRutaRapida: Double = 0.0
     private var kmRutaAlterna: Double = 0.0
+    private var esRutaRapidaSeleccionada: Boolean = true
 
     private val apiKey = "AIzaSyAjjiNfvcx-3pSKpNULTceVeX46YxLfItc"
     private val PATTERN_ALTERNATE = listOf(Dash(40f), Gap(20f))
@@ -120,10 +121,12 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
                 val esRapida = polyline == poliLineaRapida
                 puntosCaminoSeleccionado = if (esRapida) puntosRutaRapida else puntosRutaAlterna
                 actualizarEstilos()
-                Toast.makeText(context, if (esRapida) "Ruta Rápida seleccionada" else "Ruta Alterna seleccionada", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, if (esRapida) "Ruta Principal seleccionada" else "Ruta Alterna seleccionada", Toast.LENGTH_SHORT).show()
             }
         }
     }
+
+    private fun escucharViajeAsignado() {} // Omitido por brevedad, se usa escucharRutasAsignadas
 
     private fun escucharRutasAsignadas() {
         val userId = auth.currentUser?.uid ?: return
@@ -201,8 +204,10 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
                 "choferId" to userId,
                 "nombreChofer" to (ruta.choferNombre ?: ""),
                 "despachadorId" to ruta.despachadorId,
+                "nombreDespachador" to (ruta.despachadorNombre ?: ""),
                 "unidadId" to (ruta.unidadId ?: ""),
                 "placaUnidad" to (ruta.unidadPlaca ?: ""),
+                "numeroEconomico" to (ruta.unidadEco ?: ""),
                 "titulo" to ruta.nombre,
                 "estado" to "aceptada",
                 "fechaInicio" to com.google.firebase.Timestamp.now(),
@@ -238,6 +243,7 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
 
         Thread {
             try {
+                // 1. RUTA VERDE: Estándar rápida
                 val resA = DirectionsApi.newRequest(geoContext).mode(TravelMode.DRIVING)
                     .origin(origin).destination(destination).waypoints(*waypointsNormal)
                     .departureTime(Instant.now()).await()
@@ -245,7 +251,7 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
                 if (resA.routes.isNotEmpty()) {
                     val pathA = resA.routes[0].overviewPolyline.decodePath().map { LatLng(it.lat, it.lng) }
                     
-                    // RUTA AZUL: Micro-desvíos reducidos para mayor exactitud (offsetScale 0.0015)
+                    // 2. RUTA AZUL: Con micro-desvíos precisos por segmento
                     val waypointsForced = mutableListOf<String>()
                     for (i in 0 until paradasLatLng.size - 1) {
                         val p1 = paradasLatLng[i]
@@ -256,7 +262,6 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
                         val vLng = p2.longitude - p1.longitude
                         val dist = Math.sqrt(vLat * vLat + vLng * vLng)
 
-                        // Solo desviar si el tramo es suficientemente largo
                         if (dist > 0.0035) { 
                             val offsetScale = 0.0015 
                             val midLat = (p1.latitude + p2.latitude) / 2 + (-vLng / dist * offsetScale)
@@ -276,9 +281,16 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
                         if (resB.routes.isNotEmpty()) {
                             puntosRutaAlterna = resB.routes[0].overviewPolyline.decodePath().map { LatLng(it.lat, it.lng) }.toMutableList()
                             kmRutaAlterna = resB.routes[0].legs.sumOf { it.distance.inMeters.toDouble() } / 1000.0
-                        } else puntosRutaAlterna = puntosRutaRapida.toMutableList()
+                        } else if (resA.routes.size > 1) {
+                            puntosRutaAlterna = resA.routes[1].overviewPolyline.decodePath().map { LatLng(it.lat, it.lng) }.toMutableList()
+                            kmRutaAlterna = resA.routes[1].legs.sumOf { it.distance.inMeters.toDouble() } / 1000.0
+                        } else {
+                            puntosRutaAlterna = puntosRutaRapida.toMutableList()
+                            kmRutaAlterna = kmRutaRapida
+                        }
                         
                         puntosCaminoSeleccionado = puntosRutaRapida
+                        esRutaRapidaSeleccionada = true
                         dibujarLineas()
                         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pathA[0], 14f))
                     }
@@ -299,9 +311,6 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
         val colorVerde = Color.parseColor("#4CAF50")
         val colorAzul = Color.parseColor("#2196F3")
         
-        val esRutaRapidaSeleccionada = puntosCaminoSeleccionado.size == puntosRutaRapida.size && 
-                                      (puntosCaminoSeleccionado.firstOrNull() == puntosRutaRapida.firstOrNull())
-
         if (esRutaRapidaSeleccionada) {
             poliLineaRapida?.apply { color = colorVerde; width = 8f; zIndex = 10f; pattern = null }
             poliLineaAlterna?.apply { color = ColorUtils.setAlphaComponent(colorAzul, 200); width = 16f; zIndex = 5f; pattern = PATTERN_ALTERNATE }
@@ -361,7 +370,6 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
                         if (index + 1 < puntosCaminoSeleccionado.size - 1) {
                             animarVehiculo(index + 1)
                         } else {
-                            // Si terminó el camino y estamos en la última parada pendiente, forzamos llegada
                             if (paradasCompletadas == (rutaAsignada?.paradas?.size ?: 0) - 1) {
                                 forzarLlegadaMeta()
                             }
@@ -380,7 +388,7 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
             val dist = FloatArray(1)
             android.location.Location.distanceBetween(pos.latitude, pos.longitude, p.latitud, p.longitud, dist)
             
-            // Radio de detección: 20 metros para el destino final (Súper cerca), 75 para intermedias
+            // Radio: 20m para destino final, 75m para intermedias
             val radio = if (paradasCompletadas == paradas.size - 1) 20 else 75
             
             if (dist[0] < radio) {
@@ -407,7 +415,7 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
             btnIniciarRuta.text = "Terminar ruta"
             btnIniciarRuta.isEnabled = true
             tvEstadoRuta.text = "¡Destino alcanzado!"
-            btnFinalizarRuta.visibility = View.GONE // SOLO UN BOTÓN AL FINALIZAR
+            btnFinalizarRuta.visibility = View.GONE
         } else {
             tvParadaActual.text = "Próxima: ${paradas[paradasCompletadas].nombre}"
         }
@@ -430,7 +438,7 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
             traveled.add(currentPos)
             val remaining = mutableListOf(currentPos)
             remaining.addAll(puntosCaminoSeleccionado.subList(ultimoIndiceRecorrido + 1, puntosCaminoSeleccionado.size))
-            val color = if (puntosCaminoSeleccionado.size == puntosRutaRapida.size) Color.parseColor("#4CAF50") else Color.parseColor("#2196F3")
+            val color = if (esRutaRapidaSeleccionada) Color.parseColor("#4CAF50") else Color.parseColor("#2196F3")
             if (traveled.size >= 2) mMap.addPolyline(PolylineOptions().addAll(traveled).color(color).width(8f).zIndex(10f))
             if (remaining.size >= 2) mMap.addPolyline(PolylineOptions().addAll(remaining).color(Color.LTGRAY).width(8f).zIndex(5f))
         }
@@ -458,7 +466,7 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
     }
 
     private fun actualizarHistorialFinal(rutaId: String) {
-        val km = if (puntosCaminoSeleccionado.size == puntosRutaRapida.size) kmRutaRapida else kmRutaAlterna
+        val km = if (esRutaRapidaSeleccionada) kmRutaRapida else kmRutaAlterna
         val combustibleDouble = km * 0.12
         val updates = hashMapOf(
             "estado" to "completada",

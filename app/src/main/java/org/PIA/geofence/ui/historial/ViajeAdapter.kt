@@ -30,11 +30,12 @@ class ViajeAdapter(private var viajes: List<Viaje>) : RecyclerView.Adapter<Viaje
     override fun onBindViewHolder(holder: ViajeViewHolder, position: Int) {
         val viaje = viajes[position]
         holder.tvTitulo.text = viaje.titulo
-        holder.tvDistancia.text = viaje.distancia
+        holder.tvDistancia.text = if (viaje.distancia.contains("km")) viaje.distancia else "${viaje.distancia} km"
         holder.tvCosto.text = "Costo: $${viaje.costo}"
         holder.tvCombustible.text = "Combustible: ${viaje.combustible}L"
         
-        holder.tvDetalleChofer.text = "Unidad: ${viaje.placaUnidad.ifEmpty { "---" }} | Chofer: ${viaje.nombreChofer.ifEmpty { "---" }}"
+        val unidadText = if (viaje.numeroEconomico.isNotEmpty()) "U-${viaje.numeroEconomico}" else viaje.placaUnidad.ifEmpty { "---" }
+        holder.tvDetalleChofer.text = "Unidad: $unidadText | Chofer: ${viaje.nombreChofer.ifEmpty { "---" }}"
 
         val sdf = SimpleDateFormat("dd/MM/yy HH:mm", Locale.getDefault())
         

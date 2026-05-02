@@ -17,6 +17,7 @@ data class Viaje(
     val fechaFin: Timestamp? = null,
     val unidadId: String = "", // ID de la unidad
     val placaUnidad: String = "", // Placa de la unidad
+    val numeroEconomico: String = "", // Número económico de la unidad
     val distancia: String = "0.0", //distancia del trayecto
     val combustible: String = "0.0", //
     val costo: String = "0", //costo aproximado del viaje

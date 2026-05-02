@@ -63,6 +63,8 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
     private var poiMarkers = mutableListOf<Marker>()
     private var poliLineaRuta: Polyline? = null
     
+    private var dispatcherName: String = ""
+    
     private val apiKey = "AIzaSyAjjiNfvcx-3pSKpNULTceVeX46YxLfItc"
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -140,7 +142,16 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
 
         btnEnviar.setOnClickListener { asignarRutaFinal() }
 
+        obtenerDatosDespachador()
         cargarChoferesDisponibles()
+    }
+
+    private fun obtenerDatosDespachador() {
+        val uid = auth.currentUser?.uid ?: return
+        db.collection("usuarios").document(uid).get().addOnSuccessListener { doc ->
+            val user = doc.toObject(User::class.java)
+            dispatcherName = user?.nombreCompleto ?: ""
+        }
     }
 
     private fun cargarUnidadesDisponibles() {
@@ -148,7 +159,9 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
             .whereEqualTo("estado", "Disponible")
             .get()
             .addOnSuccessListener { snapshot ->
-                val list = snapshot.toObjects(Unidad::class.java)
+                val list = snapshot.toObjects(Unidad::class.java).mapIndexed { index, unidad ->
+                    unidad.apply { id = snapshot.documents[index].id }
+                }
                 unidadCompactAdapter.updateUnidades(list)
                 if (list.isEmpty()) {
                     Toast.makeText(context, "No hay unidades disponibles", Toast.LENGTH_SHORT).show()
@@ -324,8 +337,10 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
             "choferId" to chofer.id,
             "choferNombre" to chofer.nombreCompleto, 
             "despachadorId" to currentUserId,
+            "despachadorNombre" to dispatcherName,
             "unidadId" to unidad.id,
             "unidadPlaca" to unidad.placa,
+            "unidadEco" to unidad.numeroEconomico,
             "estado" to "pendiente",
             "completado" to false, 
             "fechaCreacion" to Timestamp.now(),
