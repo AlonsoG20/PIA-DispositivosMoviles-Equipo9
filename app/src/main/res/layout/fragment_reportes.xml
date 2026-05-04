@@ -34,11 +34,14 @@
 
             <!-- Rutas Totales -->
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardRutasHoy"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_rowWeight="1"
                 android:layout_columnWeight="1"
                 android:layout_margin="4dp"
+                android:clickable="true"
+                android:focusable="true"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="2dp">
                 <LinearLayout
@@ -63,7 +66,7 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Km Totales -->
+            <!-- Km Totales del día -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -80,7 +83,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Km Totales"
+                        android:text="Km totales del día"
                         android:textSize="12sp"
                         android:textColor="@color/gray_hint" />
                     <TextView
@@ -94,7 +97,7 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Incidencias -->
+            <!-- Alertas -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -111,7 +114,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Alertas Semanal"
+                        android:text="Alertas Recientes"
                         android:textSize="12sp"
                         android:textColor="@color/gray_hint" />
                     <TextView
@@ -157,13 +160,13 @@
             </com.google.android.material.card.MaterialCardView>
         </GridLayout>
 
-        <!-- Sección de Alertas de Geofencing -->
+        <!-- Sección de Alertas -->
         <TextView
             android:id="@+id/titleAlertas"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:text="Alertas de Geofencing"
+            android:text="Historial de Alertas"
             android:textSize="20sp"
             android:textStyle="bold"
             android:textColor="@color/black"
@@ -188,11 +191,11 @@
                 tools:listitem="@layout/item_incidencia" />
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Espacio extra al final para que no tape la navbar -->
+        <!-- Espacio extra al final -->
         <View
             android:layout_width="match_parent"
             android:layout_height="80dp"
-            app:layout_constraintTop_toBottomOf="@id/titleAlertas"
+            app:layout_constraintTop_toBottomOf="@id/rvIncidencias"
             app:layout_constraintBottom_toBottomOf="parent"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>

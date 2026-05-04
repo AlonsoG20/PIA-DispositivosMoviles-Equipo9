@@ -56,11 +56,11 @@ class ReportesFragment : Fragment() {
     }
 
     private fun loadKPIs() {
-        // 1. Cargar estadísticas desde la colección 'viajes' (recorridos completados)
+        // Cargar estadísticas filtradas por hoy
         db.collection("viajes").addSnapshotListener { snapshot, _ ->
             val viajes = snapshot?.toObjects(Viaje::class.java) ?: emptyList()
             
-            var kmAcumulados = 0.0
+            var kmAcumuladosHoy = 0.0
             val hoy = Calendar.getInstance().apply {
                 set(Calendar.HOUR_OF_DAY, 0)
                 set(Calendar.MINUTE, 0)
@@ -68,14 +68,19 @@ class ReportesFragment : Fragment() {
                 set(Calendar.MILLISECOND, 0)
             }.time
 
-            val rutasHoy = viajes.count { it.fechaInicio?.toDate()?.after(hoy) == true }
-            viajes.forEach { kmAcumulados += it.distancia.toDoubleOrNull() ?: 0.0 }
+            val viajesHoy = viajes.filter { it.fechaInicio?.toDate()?.after(hoy) == true }
 
-            tvRutasHoy.text = rutasHoy.toString()
-            tvKmTotales.text = String.format("%.1f", kmAcumulados)
+            viajesHoy.forEach { viaje ->
+                // Asumimos que la distancia viene como "X.X km" o similar, intentamos parsear solo el número
+                val numDist = viaje.distancia.replace(Regex("[^0-9.]"), "").toDoubleOrNull() ?: 0.0
+                kmAcumuladosHoy += numDist
+            }
+
+            tvRutasHoy.text = viajesHoy.size.toString()
+            tvKmTotales.text = String.format("%.1f", kmAcumuladosHoy)
         }
 
-        // 2. Contar choferes activos
+        // Contar choferes activos (rol chofer)
         db.collection("usuarios")
             .whereEqualTo("rol", "chofer")
             .addSnapshotListener { snapshot, _ ->
@@ -84,9 +89,9 @@ class ReportesFragment : Fragment() {
     }
 
     private fun loadIncidencias() {
+        // Cargar historial de alertas (incidencias)
         db.collection("incidencias")
             .orderBy("fecha", Query.Direction.DESCENDING)
-            .limit(10)
             .addSnapshotListener { snapshot, _ ->
                 val list = snapshot?.toObjects(Incidencia::class.java) ?: emptyList()
                 adapter.updateData(list)

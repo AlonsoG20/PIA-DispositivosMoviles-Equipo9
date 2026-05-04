@@ -17,6 +17,7 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.Timestamp
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
@@ -28,6 +29,7 @@ import org.PIA.geofence.data.User
 class ControlDespachadorFragment : Fragment() {
 
     private lateinit var db: FirebaseFirestore
+    private lateinit var auth: FirebaseAuth
     private lateinit var adapterUnidades: UnidadAdapter
     private lateinit var adapterChoferes: ChoferAdapter
     private lateinit var adapterPOI: PoiAdapter
@@ -39,9 +41,11 @@ class ControlDespachadorFragment : Fragment() {
     private lateinit var btnFilterAll: MaterialButton
     private lateinit var btnFilterDisponible: MaterialButton
     private lateinit var btnFilterOcupado: MaterialButton
+    private lateinit var btnFilterInactivo: MaterialButton
 
     private var allChoferes: List<User> = emptyList()
-    private var currentFilter: String = "ALL" // "ALL", "0", "1"
+    private var currentFilter: String = "ALL" // "ALL", "0", "1", "2"
+    private var userRole: String = ""
 
     private var unidadesListener: ListenerRegistration? = null
     private var choferesListener: ListenerRegistration? = null
@@ -58,6 +62,7 @@ class ControlDespachadorFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         db = FirebaseFirestore.getInstance()
+        auth = FirebaseAuth.getInstance()
 
         val rvUnidades = view.findViewById<RecyclerView>(R.id.rvFlotaDespachador)
         val rvChoferes = view.findViewById<RecyclerView>(R.id.rvChoferesDespachador)
@@ -69,6 +74,7 @@ class ControlDespachadorFragment : Fragment() {
         btnFilterAll = view.findViewById(R.id.btnFilterAll)
         btnFilterDisponible = view.findViewById(R.id.btnFilterDisponible)
         btnFilterOcupado = view.findViewById(R.id.btnFilterOcupado)
+        btnFilterInactivo = view.findViewById(R.id.btnFilterInactivo)
 
         tvEmptyFlota = view.findViewById(R.id.tvEmptyFlota)
         tvEmptyChoferes = view.findViewById(R.id.tvEmptyChoferes)
@@ -101,9 +107,22 @@ class ControlDespachadorFragment : Fragment() {
         btnFilterAll.setOnClickListener { updateFilter("ALL") }
         btnFilterDisponible.setOnClickListener { updateFilter("0") }
         btnFilterOcupado.setOnClickListener { updateFilter("1") }
+        btnFilterInactivo.setOnClickListener { updateFilter("2") }
 
-        updateFilterVisuals()
+        checkUserRole()
         loadData()
+    }
+
+    private fun checkUserRole() {
+        val uid = auth.currentUser?.uid ?: return
+        db.collection("usuarios").document(uid).get().addOnSuccessListener { doc ->
+            userRole = doc.getString("rol") ?: ""
+            if (userRole == "gerente") {
+                btnFilterInactivo.visibility = View.VISIBLE
+            } else {
+                btnFilterInactivo.visibility = View.GONE
+            }
+        }
     }
 
     private fun showRefuelDialog(unidad: Unidad) {
@@ -149,7 +168,7 @@ class ControlDespachadorFragment : Fragment() {
         val primaryColor = ContextCompat.getColor(requireContext(), R.color.teal_primary)
         val whiteColor = ContextCompat.getColor(requireContext(), android.R.color.white)
 
-        listOf(btnFilterAll, btnFilterDisponible, btnFilterOcupado).forEach { btn ->
+        listOf(btnFilterAll, btnFilterDisponible, btnFilterOcupado, btnFilterInactivo).forEach { btn ->
             btn.setBackgroundColor(whiteColor)
             btn.setTextColor(primaryColor)
         }
@@ -158,6 +177,7 @@ class ControlDespachadorFragment : Fragment() {
             "ALL" -> btnFilterAll
             "0" -> btnFilterDisponible
             "1" -> btnFilterOcupado
+            "2" -> btnFilterInactivo
             else -> btnFilterAll
         }
         selectedBtn.setBackgroundColor(primaryColor)
@@ -166,9 +186,10 @@ class ControlDespachadorFragment : Fragment() {
 
     private fun applyFilter() {
         val filteredList = when (currentFilter) {
-            "ALL" -> allChoferes
+            "ALL" -> allChoferes.filter { if (userRole != "gerente") it.estado != "2" else true }
             "0" -> allChoferes.filter { it.estado == "0" }
             "1" -> allChoferes.filter { it.estado == "1" }
+            "2" -> allChoferes.filter { it.estado == "2" }
             else -> allChoferes
         }
         adapterChoferes.updateChoferes(filteredList)
@@ -258,7 +279,7 @@ class ControlDespachadorFragment : Fragment() {
             .whereEqualTo("rol", "chofer")
             .addSnapshotListener { snapshot, _ ->
                 val list = snapshot?.toObjects(User::class.java) ?: emptyList()
-                allChoferes = list.filter { it.estado != "2" }
+                allChoferes = list
                 applyFilter()
             }
 

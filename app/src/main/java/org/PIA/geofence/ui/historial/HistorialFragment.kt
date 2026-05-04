@@ -1,24 +1,40 @@
 package org.PIA.geofence.ui.historial
 
+import android.content.Context
 import android.content.res.ColorStateList
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.pdf.PdfDocument
 import android.os.Bundle
+import android.os.CancellationSignal
+import android.os.ParcelFileDescriptor
+import android.print.PageRange
+import android.print.PrintAttributes
+import android.print.PrintDocumentAdapter
+import android.print.PrintDocumentInfo
+import android.print.PrintManager
 import android.text.Editable
 import android.text.TextWatcher
-import android.util.Log
+import android.view.LayoutInflater
 import android.view.View
+import android.widget.Button
 import android.widget.EditText
 import android.widget.PopupMenu
 import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import org.PIA.geofence.R
 import org.PIA.geofence.data.Viaje
+import java.io.FileOutputStream
+import java.text.SimpleDateFormat
 import java.util.*
 
 class HistorialFragment : Fragment(R.layout.fragment_historial) {
@@ -61,9 +77,148 @@ class HistorialFragment : Fragment(R.layout.fragment_historial) {
     }
 
     private fun setupRecyclerView() {
-        adapter = ViajeAdapter(emptyList())
+        adapter = ViajeAdapter(emptyList()) { viaje ->
+            if (currentRole == "gerente") {
+                mostrarDetalleYImprimir(viaje)
+            }
+        }
         rvHistorial.layoutManager = LinearLayoutManager(requireContext())
         rvHistorial.adapter = adapter
+    }
+
+    private fun mostrarDetalleYImprimir(viaje: Viaje) {
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_detalle_viaje, null)
+        
+        dialogView.findViewById<TextView>(R.id.tvDetalleTitulo).text = viaje.titulo
+        dialogView.findViewById<TextView>(R.id.tvDetalleChofer).text = "Chofer: ${viaje.nombreChofer}"
+        dialogView.findViewById<TextView>(R.id.tvDetalleDespachador).text = "Asignado por: ${viaje.nombreDespachador}"
+        dialogView.findViewById<TextView>(R.id.tvDetalleUnidad).text = "Unidad: U-${viaje.numeroEconomico} (${viaje.placaUnidad})"
+        dialogView.findViewById<TextView>(R.id.tvDetalleDistancia).text = "Distancia: ${viaje.distancia}"
+        dialogView.findViewById<TextView>(R.id.tvDetalleCombustible).text = "Combustible estimado: ${viaje.combustible}L"
+        dialogView.findViewById<TextView>(R.id.tvDetalleCosto).text = "Costo: $${viaje.costo}"
+        dialogView.findViewById<TextView>(R.id.tvDetalleParadas).text = "Paradas realizadas: ${viaje.cantidadParadas}"
+
+        val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault())
+        dialogView.findViewById<TextView>(R.id.tvDetalleFechaInicio).text = "Fecha Inicio: ${viaje.fechaInicio?.toDate()?.let { sdf.format(it) } ?: "---"}"
+        dialogView.findViewById<TextView>(R.id.tvDetalleFechaFin).text = "Fecha Fin: ${viaje.fechaFin?.toDate()?.let { sdf.format(it) } ?: "---"}"
+
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setView(dialogView)
+            .create()
+
+        dialogView.findViewById<Button>(R.id.btnCerrar).setOnClickListener { dialog.dismiss() }
+        dialogView.findViewById<Button>(R.id.btnImprimir).setOnClickListener {
+            imprimirReporte(viaje)
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
+    private fun imprimirReporte(viaje: Viaje) {
+        val printManager = requireContext().getSystemService(Context.PRINT_SERVICE) as PrintManager
+        val jobName = "${getString(R.string.app_name)} Reporte ${viaje.id}"
+
+        printManager.print(jobName, object : PrintDocumentAdapter() {
+            override fun onLayout(
+                oldAttributes: PrintAttributes?,
+                newAttributes: PrintAttributes,
+                cancellationSignal: CancellationSignal?,
+                callback: LayoutResultCallback,
+                extras: Bundle?
+            ) {
+                if (cancellationSignal?.isCanceled == true) {
+                    callback.onLayoutCancelled()
+                    return
+                }
+
+                val info = PrintDocumentInfo.Builder("reporte_viaje.pdf")
+                    .setContentType(PrintDocumentInfo.CONTENT_TYPE_DOCUMENT)
+                    .setPageCount(1)
+                    .build()
+                callback.onLayoutFinished(info, true)
+            }
+
+            override fun onWrite(
+                pages: Array<out PageRange>?,
+                destination: ParcelFileDescriptor,
+                cancellationSignal: CancellationSignal?,
+                callback: WriteResultCallback
+            ) {
+                val pdfDocument = PdfDocument()
+                val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create() // A4 size
+                val page = pdfDocument.startPage(pageInfo)
+                val canvas: Canvas = page.canvas
+                val paint = Paint()
+                val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault())
+
+                var y = 50f
+                paint.textSize = 24f
+                paint.isFakeBoldText = true
+                canvas.drawText("REPORTE DE VIAJE - GEOFENCE", 50f, y, paint)
+                
+                y += 40f
+                paint.textSize = 14f
+                paint.isFakeBoldText = false
+                canvas.drawText("ID del Viaje: ${viaje.id}", 50f, y, paint)
+                
+                y += 30f
+                paint.isFakeBoldText = true
+                canvas.drawText("Información General", 50f, y, paint)
+                y += 20f
+                paint.isFakeBoldText = false
+                canvas.drawText("Título: ${viaje.titulo}", 60f, y, paint)
+                y += 20f
+                canvas.drawText("Estado: ${viaje.estado.uppercase()}", 60f, y, paint)
+                
+                y += 30f
+                paint.isFakeBoldText = true
+                canvas.drawText("Personal y Unidad", 50f, y, paint)
+                y += 20f
+                paint.isFakeBoldText = false
+                canvas.drawText("Chofer: ${viaje.nombreChofer}", 60f, y, paint)
+                y += 20f
+                canvas.drawText("Despachador: ${viaje.nombreDespachador}", 60f, y, paint)
+                y += 20f
+                canvas.drawText("Unidad: U-${viaje.numeroEconomico} (Placa: ${viaje.placaUnidad})", 60f, y, paint)
+
+                y += 30f
+                paint.isFakeBoldText = true
+                canvas.drawText("Métricas del Viaje", 50f, y, paint)
+                y += 20f
+                paint.isFakeBoldText = false
+                canvas.drawText("Distancia Recorrida: ${viaje.distancia}", 60f, y, paint)
+                y += 20f
+                canvas.drawText("Combustible Consumido: ${viaje.combustible} L", 60f, y, paint)
+                y += 20f
+                canvas.drawText("Costo del Viaje: $${viaje.costo}", 60f, y, paint)
+                y += 20f
+                canvas.drawText("Cantidad de Paradas: ${viaje.cantidadParadas}", 60f, y, paint)
+
+                y += 30f
+                paint.isFakeBoldText = true
+                canvas.drawText("Tiempos", 50f, y, paint)
+                y += 20f
+                paint.isFakeBoldText = false
+                canvas.drawText("Inicio: ${viaje.fechaInicio?.toDate()?.let { sdf.format(it) } ?: "---"}", 60f, y, paint)
+                y += 20f
+                canvas.drawText("Fin: ${viaje.fechaFin?.toDate()?.let { sdf.format(it) } ?: "---"}", 60f, y, paint)
+
+                y += 50f
+                paint.textSize = 10f
+                canvas.drawText("Documento generado automáticamente por el sistema Geofence el ${sdf.format(Date())}", 50f, y, paint)
+
+                pdfDocument.finishPage(page)
+                try {
+                    pdfDocument.writeTo(FileOutputStream(destination.fileDescriptor))
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                } finally {
+                    pdfDocument.close()
+                }
+                callback.onWriteFinished(arrayOf(PageRange.ALL_PAGES))
+            }
+        }, null)
     }
 
     private fun setupListeners() {

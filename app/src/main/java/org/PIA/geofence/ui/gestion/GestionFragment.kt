@@ -167,9 +167,8 @@ class GestionFragment : Fragment() {
             .whereIn("rol", listOf("chofer", "despachador"))
             .addSnapshotListener { snapshot, _ ->
                 val list = snapshot?.toObjects(User::class.java) ?: emptyList()
-                // Solo mostramos activos (estado != "2")
-                val activos = list.filter { it.estado != "2" }
-                adapterPersonal.updateUsers(activos)
+                // El gerente puede ver a todos, incluso los inactivos (estado "2")
+                adapterPersonal.updateUsers(list)
             }
     }
 

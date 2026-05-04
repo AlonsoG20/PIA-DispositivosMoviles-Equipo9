@@ -10,7 +10,10 @@ import org.PIA.geofence.data.Viaje
 import java.text.SimpleDateFormat
 import java.util.*
 
-class ViajeAdapter(private var viajes: List<Viaje>) : RecyclerView.Adapter<ViajeAdapter.ViajeViewHolder>() {
+class ViajeAdapter(
+    private var viajes: List<Viaje>,
+    private val onItemClick: (Viaje) -> Unit = {}
+) : RecyclerView.Adapter<ViajeAdapter.ViajeViewHolder>() {
 
     class ViajeViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvTitulo: TextView = view.findViewById(R.id.tvTitulo)
@@ -41,6 +44,8 @@ class ViajeAdapter(private var viajes: List<Viaje>) : RecyclerView.Adapter<Viaje
         
         holder.tvFecha.text = "Inicio: " + (viaje.fechaInicio?.toDate()?.let { sdf.format(it) } ?: "--/--/--")
         holder.tvFechaFin.text = "Fin: " + (viaje.fechaFin?.toDate()?.let { sdf.format(it) } ?: "En curso")
+
+        holder.itemView.setOnClickListener { onItemClick(viaje) }
     }
 
     override fun getItemCount() = viajes.size
