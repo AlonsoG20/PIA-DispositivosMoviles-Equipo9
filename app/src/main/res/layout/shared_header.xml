@@ -10,20 +10,21 @@
     android:paddingEnd="16dp"
     android:paddingBottom="20dp">
 
-    <TextView
+    <com.google.android.material.imageview.ShapeableImageView
         android:id="@+id/logo"
         android:layout_width="56dp"
         android:layout_height="56dp"
-        android:background="@drawable/circle_background_light"
-        android:gravity="center"
-        android:text="Logo"
-        android:textColor="#FFFFFF"
-        android:textSize="12sp"
+        android:scaleType="centerCrop"
+        android:src="@drawable/logo_app"
+        app:srcCompat="@drawable/logo_app"
+        android:background="@android:color/white"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:shapeAppearanceOverlay="@style/CardView"
+        app:strokeColor="@android:color/white"
+        app:strokeWidth="1dp" />
 
-    <!-- Título -->
     <TextView
         android:id="@+id/header_title"
         android:layout_width="wrap_content"
@@ -36,20 +37,5 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toEndOf="@id/logo"
         app:layout_constraintTop_toTopOf="parent" />
-
-    <com.google.android.material.imageview.ShapeableImageView
-        android:id="@+id/profile_image"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
-        android:background="#A8E6CF"
-        android:padding="2dp"
-        android:scaleType="centerInside"
-        android:src="@drawable/ic_person"
-        android:visibility="invisible"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:shapeAppearanceOverlay="@style/CircleAppearance"
-        tools:visibility="visible" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
