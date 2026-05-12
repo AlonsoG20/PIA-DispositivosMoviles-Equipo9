@@ -8,6 +8,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import com.google.android.material.chip.Chip
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -20,11 +21,11 @@ class CuentaFragment : Fragment(R.layout.fragment_cuenta) {
     private lateinit var db: FirebaseFirestore
 
     private lateinit var tvDriverName: TextView
-    private lateinit var tvUserRole: TextView
+    private lateinit var tvUserEmail: TextView
+    private lateinit var chipUserRole: Chip
     private lateinit var tvAssignedUnit: TextView
     private lateinit var tvCompletedRoutes: TextView
-    private lateinit var cardStats: LinearLayout
-    private lateinit var spacerStats: View
+    private lateinit var cardStats: View
     
     private var viajesListener: ListenerRegistration? = null
 
@@ -35,11 +36,11 @@ class CuentaFragment : Fragment(R.layout.fragment_cuenta) {
         db = FirebaseFirestore.getInstance()
 
         tvDriverName = view.findViewById(R.id.tvDriverName)
-        tvUserRole = view.findViewById(R.id.tvUserRole)
+        tvUserEmail = view.findViewById(R.id.tvUserEmail)
+        chipUserRole = view.findViewById(R.id.chipUserRole)
         tvAssignedUnit = view.findViewById(R.id.tvAssignedUnit)
         tvCompletedRoutes = view.findViewById(R.id.tvCompletedRoutes)
         cardStats = view.findViewById(R.id.cardStats)
-        spacerStats = view.findViewById(R.id.spacerStats)
         val btnLogout = view.findViewById<Button>(R.id.btnLogout)
 
         btnLogout.setOnClickListener {
@@ -49,10 +50,8 @@ class CuentaFragment : Fragment(R.layout.fragment_cuenta) {
             startActivity(intent)
         }
 
-        // Ocultar por defecto hasta saber el rol
-        tvAssignedUnit.visibility = View.GONE
-        cardStats.visibility = View.GONE
-        spacerStats.visibility = View.GONE
+        // Mostrar email desde Auth
+        tvUserEmail.text = auth.currentUser?.email ?: "Sin correo"
 
         loadUserData()
     }
@@ -69,19 +68,22 @@ class CuentaFragment : Fragment(R.layout.fragment_cuenta) {
                     val nombreCompleto = "$nombre $apellidos".trim()
 
                     tvDriverName.text = if (nombreCompleto.isNotEmpty()) nombreCompleto else "Usuario"
-                    tvUserRole.text = "Rol: $rol"
+                    chipUserRole.text = rol.uppercase()
+
+                    // Cambiar color del chip según el rol
+                    when(rol.lowercase()) {
+                        "gerente" -> chipUserRole.setChipBackgroundColorResource(android.R.color.holo_purple)
+                        "despachador" -> chipUserRole.setChipBackgroundColorResource(android.R.color.holo_orange_dark)
+                        "chofer" -> chipUserRole.setChipBackgroundColorResource(R.color.teal_primary)
+                    }
 
                     if (rol.equals("chofer", ignoreCase = true)) {
                         tvAssignedUnit.visibility = View.VISIBLE
                         cardStats.visibility = View.VISIBLE
-                        spacerStats.visibility = View.VISIBLE
 
                         val unidad = document.getString("unidad")
-                        if (unidad != null) {
-                            tvAssignedUnit.text = "Unidad asignada: $unidad"
-                        }
+                        tvAssignedUnit.text = "Unidad asignada: ${unidad ?: "Sin unidad"}"
 
-                        // Usar listener en tiempo real para las rutas completadas
                         if (nombreCompleto.isNotEmpty()) {
                             setupCompletedRoutesListener(nombreCompleto)
                         } else {
@@ -90,7 +92,6 @@ class CuentaFragment : Fragment(R.layout.fragment_cuenta) {
                     } else {
                         tvAssignedUnit.visibility = View.GONE
                         cardStats.visibility = View.GONE
-                        spacerStats.visibility = View.GONE
                     }
                 }
             }
