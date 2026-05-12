@@ -14,6 +14,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
@@ -32,6 +34,7 @@ class GestionFragment : Fragment() {
     private var sinRolListener: ListenerRegistration? = null
     private var unidadesListener: ListenerRegistration? = null
     private var personalListener: ListenerRegistration? = null
+    private var alertasListener: ListenerRegistration? = null
 
     private var isSinRolExpanded = false
     private var isUnidadesExpanded = false
@@ -173,15 +176,30 @@ class GestionFragment : Fragment() {
     }
 
     private fun escucharAlertas() {
-        db.collection("alertas")
-            .whereEqualTo("leida", false)
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+
+        alertasListener?.remove()
+        alertasListener = db.collection("alertas")
             .addSnapshotListener { snapshot, _ ->
                 snapshot?.documentChanges?.forEach { dc ->
-                    if (dc.type == com.google.firebase.firestore.DocumentChange.Type.ADDED) {
-                        val msg = dc.document.getString("mensaje") ?: "Alerta de unidad"
-                        val eco = dc.document.getString("unidadEco") ?: ""
-                        if (isAdded) {
-                            Toast.makeText(context, "⚠️ ALERTA U-$eco: $msg", Toast.LENGTH_LONG).show()
+                    if (dc.type == com.google.firebase.firestore.DocumentChange.Type.ADDED ||
+                        dc.type == com.google.firebase.firestore.DocumentChange.Type.MODIFIED) {
+
+                        val alertDoc = dc.document
+                        val vistosPor = alertDoc.get("vistosPor") as? List<String> ?: emptyList()
+
+                        // Si el gerente actual NO ha visto esta alerta
+                        if (!vistosPor.contains(currentUserId)) {
+                            val msg = alertDoc.getString("mensaje") ?: "Alerta de unidad"
+                            val eco = alertDoc.getString("unidadEco") ?: ""
+
+                            if (isAdded) {
+                                Toast.makeText(context, "⚠️ ALERTA U-$eco: $msg", Toast.LENGTH_LONG).show()
+
+                                // Registrar que este gerente ya la vio
+                                db.collection("alertas").document(alertDoc.id)
+                                    .update("vistosPor", FieldValue.arrayUnion(currentUserId))
+                            }
                         }
                     }
                 }
@@ -208,5 +226,6 @@ class GestionFragment : Fragment() {
         sinRolListener?.remove()
         unidadesListener?.remove()
         personalListener?.remove()
+        alertasListener?.remove()
     }
 }
