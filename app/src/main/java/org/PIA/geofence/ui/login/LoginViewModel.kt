@@ -5,6 +5,8 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.PhoneAuthCredential
+import com.google.firebase.auth.PhoneAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 
 class LoginViewModel : ViewModel() {
@@ -14,6 +16,9 @@ class LoginViewModel : ViewModel() {
 
     private val _loginState = MutableLiveData<LoginState>()
     val loginState: LiveData<LoginState> = _loginState
+
+    private var verificationId: String? = null
+    private var resendToken: PhoneAuthProvider.ForceResendingToken? = null
 
     fun login(email: String, password: String) {
         if (email.isBlank() || password.isBlank()) {
@@ -33,13 +38,12 @@ class LoginViewModel : ViewModel() {
                 if (task.isSuccessful) {
                     val user = auth.currentUser
                     if (user != null) {
-                        // Forzamos la recarga del perfil para obtener el estado real de isEmailVerified
                         user.reload().addOnCompleteListener { reloadTask ->
                             if (user.isEmailVerified) {
                                 checkUserStatus(user.uid)
                             } else {
                                 auth.signOut()
-                                _loginState.value = LoginState.Error("Correo no verificado. ¿No recibiste el enlace?", canResend = true)
+                                _loginState.value = LoginState.Error("Correo no verificado.", canResend = true)
                             }
                         }
                     } else {
@@ -48,6 +52,23 @@ class LoginViewModel : ViewModel() {
                 } else {
                     val errorMessage = task.exception?.localizedMessage ?: "Error al iniciar sesión"
                     _loginState.value = LoginState.Error(errorMessage)
+                }
+            }
+    }
+
+    fun signInWithPhone(credential: PhoneAuthCredential) {
+        _loginState.value = LoginState.Loading
+        auth.signInWithCredential(credential)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val user = auth.currentUser
+                    if (user != null) {
+                        checkUserStatus(user.uid)
+                    } else {
+                        _loginState.value = LoginState.Error("Error al obtener información del usuario")
+                    }
+                } else {
+                    _loginState.value = LoginState.Error(task.exception?.localizedMessage ?: "Error de verificación")
                 }
             }
     }
@@ -67,7 +88,7 @@ class LoginViewModel : ViewModel() {
                             }
                         }
                 } else {
-                    _loginState.value = LoginState.Error("Credenciales inválidas para reenviar correo.")
+                    _loginState.value = LoginState.Error("Credenciales inválidas.")
                 }
             }
     }
@@ -81,11 +102,11 @@ class LoginViewModel : ViewModel() {
                         _loginState.value = LoginState.Success
                     } else {
                         auth.signOut()
-                        _loginState.value = LoginState.Error("Tu cuenta está desactivada. Contacta al administrador.")
+                        _loginState.value = LoginState.Error("Tu cuenta está desactivada.")
                     }
                 } else {
-                    auth.signOut()
-                    _loginState.value = LoginState.Error("No se encontró información de tu cuenta.")
+                    // Si el usuario existe en Auth pero no en Firestore, podría ser un error de registro incompleto
+                    _loginState.value = LoginState.Success
                 }
             }
             .addOnFailureListener { e ->
@@ -93,10 +114,18 @@ class LoginViewModel : ViewModel() {
                 _loginState.value = LoginState.Error("Error al verificar estatus: ${e.localizedMessage}")
             }
     }
+
+    fun setVerificationInfo(id: String, token: PhoneAuthProvider.ForceResendingToken?) {
+        this.verificationId = id
+        this.resendToken = token
+    }
+
+    fun getVerificationId() = verificationId
 }
 
 sealed class LoginState {
     object Loading : LoginState()
     object Success : LoginState()
     data class Error(val message: String, val canResend: Boolean = false) : LoginState()
+    data class CodeSent(val phone: String) : LoginState()
 }

@@ -17,6 +17,7 @@ class UsersSinRolAdapter(
     class UserViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvName: TextView = view.findViewById(R.id.tvUserName)
         val tvEmail: TextView = view.findViewById(R.id.tvUserEmail)
+        val tvPhone: TextView = view.findViewById(R.id.tvUserPhone)
         val btnChofer: Button = view.findViewById(R.id.btnAsignarChofer)
         val btnDespachador: Button = view.findViewById(R.id.btnAsignarDespachador)
     }
@@ -31,6 +32,7 @@ class UsersSinRolAdapter(
         val user = users[position]
         holder.tvName.text = user.nombreCompleto
         holder.tvEmail.text = user.emailSeguro
+        holder.tvPhone.text = user.telefonoSeguro
 
         holder.btnChofer.setOnClickListener { onRoleAssigned(user, "chofer") }
         holder.btnDespachador.setOnClickListener { onRoleAssigned(user, "despachador") }

@@ -20,6 +20,7 @@
             android:text="Nombre Apellido"
             android:textSize="16sp"
             android:textStyle="bold"
+            android:textColor="@color/black"
             app:layout_constraintEnd_toStartOf="@+id/btnAsignarChofer"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
@@ -30,9 +31,21 @@
             android:layout_height="wrap_content"
             android:text="correo@ejemplo.com"
             android:textSize="12sp"
+            android:textColor="#666666"
             app:layout_constraintEnd_toStartOf="@+id/btnAsignarChofer"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/tvUserName" />
+
+        <TextView
+            android:id="@+id/tvUserPhone"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="+52 0000000000"
+            android:textSize="12sp"
+            android:textColor="#666666"
+            app:layout_constraintEnd_toStartOf="@+id/btnAsignarChofer"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvUserEmail" />
 
         <Button
             android:id="@+id/btnAsignarChofer"

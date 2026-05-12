@@ -41,7 +41,6 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- ScrollView solo contiene el formulario -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -64,7 +63,6 @@
                 android:padding="20dp"
                 android:src="@drawable/ic_person" />
 
-            <!-- Titulo -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -74,69 +72,72 @@
                 android:textSize="22sp"
                 android:textStyle="bold" />
 
-            <!-- Label Correo -->
             <TextView
+                android:id="@+id/tvLabelIdentifier"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
-                android:text="Correo electronico"
+                android:text="Correo o Teléfono (+52...)"
                 android:textColor="@color/black"
                 android:textSize="14sp" />
 
-            <!-- Campo Correo -->
             <EditText
-                android:id="@+id/etEmail"
+                android:id="@+id/etIdentifier"
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
                 android:layout_marginTop="6dp"
                 android:background="@drawable/input_background"
-                android:hint="ejemplo@correo.com"
+                android:hint="ejemplo@correo.com o +52..."
                 android:inputType="textEmailAddress"
                 android:paddingStart="12dp"
                 android:paddingEnd="12dp"
                 android:textColor="@color/black" />
 
-            <!-- Label Contraseña -->
-            <TextView
+            <LinearLayout
+                android:id="@+id/layoutPassword"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="Contraseña"
-                android:textColor="@color/black"
-                android:textSize="14sp" />
+                android:orientation="vertical">
 
-            <!-- Contenedor Campo Contraseña -->
-            <RelativeLayout
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="6dp">
-
-                <EditText
-                    android:id="@+id/etPassword"
+                <TextView
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:background="@drawable/input_background"
-                    android:hint="••••••••"
-                    android:inputType="textPassword"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="45dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="Contraseña"
                     android:textColor="@color/black"
-                    android:textColorHint="#959595" />
+                    android:textSize="14sp" />
 
-                <ImageView
-                    android:id="@+id/ivShowPassword"
-                    android:layout_width="30dp"
-                    android:layout_height="30dp"
-                    android:layout_alignParentEnd="true"
-                    android:layout_centerVertical="true"
-                    android:layout_marginEnd="10dp"
-                    android:alpha="0.5"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:src="@android:drawable/ic_menu_view" />
-            </RelativeLayout>
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="6dp">
 
-            <!-- Botón Iniciar Sesión -->
+                    <EditText
+                        android:id="@+id/etPassword"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/input_background"
+                        android:hint="••••••••"
+                        android:inputType="textPassword"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="45dp"
+                        android:textColor="@color/black"
+                        android:textColorHint="#959595" />
+
+                    <ImageView
+                        android:id="@+id/ivShowPassword"
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:layout_marginEnd="10dp"
+                        android:alpha="0.5"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:src="@android:drawable/ic_menu_view" />
+                </RelativeLayout>
+            </LinearLayout>
+
             <Button
                 android:id="@+id/btnLogin"
                 android:layout_width="match_parent"
@@ -149,7 +150,6 @@
                 android:textColor="@color/white"
                 android:textSize="20sp" />
 
-            <!-- Link Registro -->
             <TextView
                 android:id="@+id/tvGoToRegister"
                 android:layout_width="wrap_content"
@@ -161,7 +161,6 @@
                 android:textColor="#789D9C"
                 android:textSize="20sp" />
 
-            <!-- Mensaje de error -->
             <TextView
                 android:id="@+id/tvError"
                 android:layout_width="match_parent"
@@ -173,7 +172,6 @@
                 android:textSize="13sp"
                 android:visibility="gone" />
 
-            <!-- Indicador de carga -->
             <ProgressBar
                 android:id="@+id/progressBar"
                 android:layout_width="wrap_content"

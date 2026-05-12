@@ -1,7 +1,6 @@
 package org.PIA.geofence.ui.login
 
 import android.content.Intent
-import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Bundle
 import android.text.Editable
@@ -15,9 +14,15 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
+import com.google.firebase.FirebaseException
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.PhoneAuthCredential
+import com.google.firebase.auth.PhoneAuthOptions
+import com.google.firebase.auth.PhoneAuthProvider
 import org.PIA.geofence.R
+import java.util.concurrent.TimeUnit
 
 class RegisterActivity : AppCompatActivity() {
 
@@ -25,6 +30,7 @@ class RegisterActivity : AppCompatActivity() {
 
     private lateinit var etNombre: EditText
     private lateinit var etApellidos: EditText
+    private lateinit var etPhone: EditText
     private lateinit var etEmail: EditText
     private lateinit var etPassword: EditText
     private lateinit var etConfirmPassword: EditText
@@ -33,27 +39,27 @@ class RegisterActivity : AppCompatActivity() {
     private lateinit var tvError: TextView
     private lateinit var progressBar: ProgressBar
 
-    // Requisitos de contraseña
     private lateinit var tvReqUppercase: TextView
     private lateinit var tvReqLowercase: TextView
     private lateinit var tvReqNumber: TextView
     private lateinit var tvReqMinLength: TextView
 
-    // Iconos de visibilidad
     private lateinit var ivShowPassword: ImageView
     private lateinit var ivShowConfirmPassword: ImageView
     private var isPasswordVisible = false
     private var isConfirmPasswordVisible = false
 
+    // Variables para flujo de registro
+    private var pendingPhone: String = ""
+    private var isEmailAuth: Boolean = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_register)
 
-        // Se comenta debido a que ahora la app es fullscreen desde el tema
-        // window.statusBarColor = getColor(R.color.teal_primary)
-
         etNombre = findViewById(R.id.etNombre)
         etApellidos = findViewById(R.id.etApellidos)
+        etPhone = findViewById(R.id.etPhone)
         etEmail = findViewById(R.id.etEmail)
         etPassword = findViewById(R.id.etPassword)
         etConfirmPassword = findViewById(R.id.etConfirmPassword)
@@ -65,25 +71,21 @@ class RegisterActivity : AppCompatActivity() {
         ivShowPassword = findViewById(R.id.ivShowPassword)
         ivShowConfirmPassword = findViewById(R.id.ivShowConfirmPassword)
 
-        // Inicializar requisitos
         tvReqUppercase = findViewById(R.id.tvReqUppercase)
         tvReqLowercase = findViewById(R.id.tvReqLowercase)
         tvReqNumber = findViewById(R.id.tvReqNumber)
         tvReqMinLength = findViewById(R.id.tvReqMinLength)
 
-        // Configurar toggle para contraseña principal
         ivShowPassword.setOnClickListener {
             isPasswordVisible = !isPasswordVisible
             togglePasswordVisibility(etPassword, ivShowPassword, isPasswordVisible)
         }
 
-        // Configurar toggle para confirmar contraseña
         ivShowConfirmPassword.setOnClickListener {
             isConfirmPasswordVisible = !isConfirmPasswordVisible
             togglePasswordVisibility(etConfirmPassword, ivShowConfirmPassword, isConfirmPasswordVisible)
         }
 
-        // Listener para validar requisitos en tiempo real
         etPassword.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -95,10 +97,11 @@ class RegisterActivity : AppCompatActivity() {
         btnRegister.setOnClickListener {
             val nombre = etNombre.text.toString().trim()
             val apellidos = etApellidos.text.toString().trim()
+            val phone = etPhone.text.toString().trim()
             val email = etEmail.text.toString().trim()
             val password = etPassword.text.toString().trim()
             val confirmPass = etConfirmPassword.text.toString().trim()
-            viewModel.register(nombre, apellidos, email, password, confirmPass)
+            viewModel.register(nombre, apellidos, phone, email, password, confirmPass)
         }
 
         tvBackToLogin.setOnClickListener {
@@ -114,8 +117,16 @@ class RegisterActivity : AppCompatActivity() {
                 }
                 is RegisterState.Success -> {
                     progressBar.visibility = View.GONE
-                    Toast.makeText(this, "Registro exitoso. Por favor verifica tu correo electrónico.", Toast.LENGTH_LONG).show()
-                    finish()
+                    this.isEmailAuth = state.isEmailAuth
+                    this.pendingPhone = state.phone
+
+                    if (state.phone.isNotBlank()) {
+                        startPhoneVerification(state.phone)
+                    } else {
+                        // Solo correo, proceso terminado (ya se envió verificación en VM)
+                        Toast.makeText(this, "Registro exitoso. Revisa tu correo.", Toast.LENGTH_LONG).show()
+                        finish()
+                    }
                 }
                 is RegisterState.Error -> {
                     progressBar.visibility = View.GONE
@@ -127,26 +138,111 @@ class RegisterActivity : AppCompatActivity() {
         }
     }
 
+    private fun startPhoneVerification(phoneNumber: String) {
+        val options = PhoneAuthOptions.newBuilder()
+            .setPhoneNumber(phoneNumber)
+            .setTimeout(60L, TimeUnit.SECONDS)
+            .setActivity(this)
+            .setCallbacks(object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
+                override fun onVerificationCompleted(credential: PhoneAuthCredential) {
+                    handleCredential(credential)
+                }
+
+                override fun onVerificationFailed(e: FirebaseException) {
+                    Toast.makeText(this@RegisterActivity, "Error de SMS: ${e.message}", Toast.LENGTH_LONG).show()
+                    btnRegister.isEnabled = true
+                }
+
+                override fun onCodeSent(verificationId: String, token: PhoneAuthProvider.ForceResendingToken) {
+                    viewModel.setVerificationInfo(verificationId, token)
+                    showOtpDialog()
+                }
+            })
+            .build()
+        PhoneAuthProvider.verifyPhoneNumber(options)
+    }
+
+    private fun showOtpDialog() {
+        val input = EditText(this)
+        input.inputType = InputType.TYPE_CLASS_NUMBER
+        input.hint = "123456"
+
+        AlertDialog.Builder(this)
+            .setTitle("Verificación de Teléfono")
+            .setMessage("Ingresa el código enviado a " + pendingPhone)
+            .setView(input)
+            .setCancelable(false)
+            .setPositiveButton("Verificar") { _, _ ->
+                val code = input.text.toString().trim()
+                if (code.length == 6) {
+                    val verificationId = viewModel.getVerificationId() ?: return@setPositiveButton
+                    val credential = PhoneAuthProvider.getCredential(verificationId, code)
+                    handleCredential(credential)
+                } else {
+                    Toast.makeText(this, "Código incompleto", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .show()
+    }
+
+    private fun handleCredential(credential: PhoneAuthCredential) {
+        val auth = FirebaseAuth.getInstance()
+        val user = auth.currentUser
+
+        if (isEmailAuth && user != null) {
+            // Caso A: Ya hay usuario por correo, lo vinculamos
+            user.linkWithCredential(credential).addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    Toast.makeText(this, "Registro y teléfono vinculados correctamente", Toast.LENGTH_LONG).show()
+                    auth.signOut()
+                    finish()
+                } else {
+                    Toast.makeText(this, "Error al vincular: ${task.exception?.message}", Toast.LENGTH_LONG).show()
+                    btnRegister.isEnabled = true
+                }
+            }
+        } else {
+            // Caso B: Solo teléfono, iniciamos sesión normal
+            auth.signInWithCredential(credential).addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val firebaseUser = task.result?.user
+                    if (firebaseUser != null) {
+                        // Guardar datos en Firestore ya que es un usuario nuevo sin Email
+                        viewModel.saveUserToFirestore(
+                            firebaseUser.uid,
+                            etNombre.text.toString().trim(),
+                            etApellidos.text.toString().trim(),
+                            "",
+                            pendingPhone
+                        ) {
+                            Toast.makeText(this, "Registro por teléfono exitoso", Toast.LENGTH_LONG).show()
+                            auth.signOut()
+                            finish()
+                        }
+                    }
+                } else {
+                    Toast.makeText(this, "Error de inicio de sesión: ${task.exception?.message}", Toast.LENGTH_LONG).show()
+                    btnRegister.isEnabled = true
+                }
+            }
+        }
+    }
+
     private fun validatePasswordRequirements(password: String) {
-        // Mayúscula
         updateRequirementState(tvReqUppercase, password.any { it.isUpperCase() })
-        // Minúscula
         updateRequirementState(tvReqLowercase, password.any { it.isLowerCase() })
-        // Número
         updateRequirementState(tvReqNumber, password.any { it.isDigit() })
-        // Longitud mínima
         updateRequirementState(tvReqMinLength, password.length >= 6)
     }
 
     private fun updateRequirementState(textView: TextView, isMet: Boolean) {
         if (isMet) {
-            textView.setTextColor(Color.parseColor("#2E7D32")) // Verde
-            // Opcional: añadir un check al inicio si se desea, por ahora solo cambio de color
+            textView.setTextColor(Color.parseColor("#2E7D32"))
             if (!textView.text.startsWith("✓")) {
                 textView.text = "✓ " + textView.text.toString().removePrefix("• ")
             }
         } else {
-            textView.setTextColor(Color.parseColor("#666666")) // Gris original
+            textView.setTextColor(Color.parseColor("#666666"))
             if (textView.text.startsWith("✓")) {
                 textView.text = "• " + textView.text.toString().removePrefix("✓ ")
             }
@@ -155,15 +251,12 @@ class RegisterActivity : AppCompatActivity() {
 
     private fun togglePasswordVisibility(editText: EditText, imageView: ImageView, isVisible: Boolean) {
         if (isVisible) {
-            // Mostrar contraseña
             editText.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
             imageView.alpha = 1.0f 
         } else {
-            // Ocultar contraseña
             editText.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
             imageView.alpha = 0.5f
         }
-        // Mover el cursor al final del texto después del cambio
         editText.setSelection(editText.text.length)
     }
 }
