@@ -196,19 +196,15 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e4c48124-3f77-47f5-86a6-3339e5c5d98b" name="Changes" comment="Alertas mejoradas, sincronizacion de reportes en gerente con las rutas hechas">
+    <list default="true" id="e4c48124-3f77-47f5-86a6-3339e5c5d98b" name="Changes" comment="Datos del usuario en el encabezado">
       <change beforePath="$PROJECT_DIR$/.gradle/9.1.0/executionHistory/executionHistory.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/9.1.0/executionHistory/executionHistory.bin" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.gradle/9.1.0/executionHistory/executionHistory.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/9.1.0/executionHistory/executionHistory.lock" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.gradle/9.1.0/fileHashes/fileHashes.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/9.1.0/fileHashes/fileHashes.bin" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.gradle/9.1.0/fileHashes/fileHashes.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/9.1.0/fileHashes/fileHashes.lock" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.gradle/9.1.0/fileHashes/resourceHashesCache.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/9.1.0/fileHashes/resourceHashesCache.bin" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/file-system.probe" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/file-system.probe" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/MainActivity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/MainActivity.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/ui/login/RegisterActivity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/ui/login/RegisterActivity.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/res/layout/activity_register.xml" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/res/layout/activity_register.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/res/layout/shared_header.xml" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/res/layout/shared_header.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/ui/historial/HistorialFragment.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/ui/historial/HistorialFragment.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -668,7 +664,23 @@
       <option name="project" value="LOCAL" />
       <updated>1777874263663</updated>
     </task>
-    <option name="localTasksCounter" value="28" />
+    <task id="LOCAL-00028" summary="Boton de regreso en registrarse">
+      <option name="closed" value="true" />
+      <created>1779057336445</created>
+      <option name="number" value="00028" />
+      <option name="presentableId" value="LOCAL-00028" />
+      <option name="project" value="LOCAL" />
+      <updated>1779057336445</updated>
+    </task>
+    <task id="LOCAL-00029" summary="Datos del usuario en el encabezado">
+      <option name="closed" value="true" />
+      <created>1779057487812</created>
+      <option name="number" value="00029" />
+      <option name="presentableId" value="LOCAL-00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1779057487812</updated>
+    </task>
+    <option name="localTasksCounter" value="30" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -683,8 +695,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="se añade cabecera comun" />
-    <MESSAGE value="se dirige el fragment cuenta al iniciar sesion" />
     <MESSAGE value="se agrega firebase al proyecto" />
     <MESSAGE value="se añade funcionalidad de inicio de sesión. registrar cuentas, validación de sesión y contraseñas" />
     <MESSAGE value="detalle shared_navbar.xml" />
@@ -708,19 +718,21 @@
     <MESSAGE value="filtro de busqueda en historial" />
     <MESSAGE value="unidad con diferentes capacidades y gastos de gasolina, correcion de errores" />
     <MESSAGE value="Alertas mejoradas, sincronizacion de reportes en gerente con las rutas hechas" />
-    <option name="LAST_COMMIT_MESSAGE" value="Alertas mejoradas, sincronizacion de reportes en gerente con las rutas hechas" />
+    <MESSAGE value="Boton de regreso en registrarse" />
+    <MESSAGE value="Datos del usuario en el encabezado" />
+    <option name="LAST_COMMIT_MESSAGE" value="Datos del usuario en el encabezado" />
   </component>
   <component name="play_dynamic_filters_status">
     <option name="appIdToCheckInfo">
       <map>
         <entry key="org.PIA.geofence">
           <value>
-            <CheckInfo lastCheckTimestamp="1777872069946" />
+            <CheckInfo lastCheckTimestamp="1779057265543" />
           </value>
         </entry>
         <entry key="org.PIA.geofence.test">
           <value>
-            <CheckInfo lastCheckTimestamp="1777872069945" />
+            <CheckInfo lastCheckTimestamp="1779057265538" />
           </value>
         </entry>
       </map>

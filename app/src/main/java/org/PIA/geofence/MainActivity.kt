@@ -71,6 +71,7 @@ class MainActivity : AppCompatActivity() {
         checkUserRole()
 
         navCuenta.setOnClickListener { loadFragment(CuentaFragment(), it.id) }
+        navHistorial.setOnClickListener { loadFragment(HistorialFragment(), it.id) }
         navRutas.setOnClickListener {
             val userId = auth.currentUser?.uid ?: return@setOnClickListener
             db.collection("usuarios").document(userId).get().addOnSuccessListener { doc ->
@@ -82,7 +83,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-        navHistorial.setOnClickListener { loadFragment(HistorialFragment(), it.id) }
         navGestion.setOnClickListener { 
             val userId = auth.currentUser?.uid ?: return@setOnClickListener
             db.collection("usuarios").document(userId).get().addOnSuccessListener { doc ->
@@ -138,6 +138,7 @@ class MainActivity : AppCompatActivity() {
             "gerente" -> {
                 tvGestion.text = "Gestión"
                 navGestion.visibility = View.VISIBLE
+                navHistorial.visibility = View.VISIBLE
                 navReportes.visibility = View.VISIBLE
                 loadFragment(GestionFragment(), R.id.nav_gestion)
             }

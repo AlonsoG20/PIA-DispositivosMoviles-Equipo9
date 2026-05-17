@@ -2,6 +2,8 @@ package org.PIA.geofence.ui.historial
 
 import android.content.Context
 import android.content.res.ColorStateList
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -152,29 +154,54 @@ class HistorialFragment : Fragment(R.layout.fragment_historial) {
                 val paint = Paint()
                 val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault())
 
-                var y = 50f
+                // Dibujar Logo de la marca
+                try {
+                    val bitmap = BitmapFactory.decodeResource(resources, R.drawable.logo_app)
+                    val scaledBitmap = Bitmap.createScaledBitmap(bitmap, 80, 80, true)
+                    canvas.drawBitmap(scaledBitmap, 465f, 40f, paint)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+
+                var y = 80f
                 paint.textSize = 24f
                 paint.isFakeBoldText = true
-                canvas.drawText("REPORTE DE VIAJE - GEOFENCE", 50f, y, paint)
+                canvas.drawText("REPORTE DE VIAJE", 50f, y, paint)
                 
-                y += 40f
+                y += 25f
+                paint.textSize = 16f
+                paint.color = Color.DKGRAY
+                canvas.drawText("GEOFENCE", 50f, y, paint)
+                
+                paint.color = Color.BLACK
+                y += 45f
                 paint.textSize = 14f
                 paint.isFakeBoldText = false
                 canvas.drawText("ID del Viaje: ${viaje.id}", 50f, y, paint)
                 
-                y += 30f
+                y += 40f
                 paint.isFakeBoldText = true
+                paint.textSize = 16f
                 canvas.drawText("Información General", 50f, y, paint)
-                y += 20f
+                
+                paint.strokeWidth = 1f
+                canvas.drawLine(50f, y + 5, 250f, y + 5, paint)
+                
+                y += 30f
+                paint.textSize = 14f
                 paint.isFakeBoldText = false
                 canvas.drawText("Título: ${viaje.titulo}", 60f, y, paint)
                 y += 20f
                 canvas.drawText("Estado: ${viaje.estado.uppercase()}", 60f, y, paint)
                 
-                y += 30f
+                y += 40f
                 paint.isFakeBoldText = true
+                paint.textSize = 16f
                 canvas.drawText("Personal y Unidad", 50f, y, paint)
-                y += 20f
+                canvas.drawLine(50f, y + 5, 250f, y + 5, paint)
+                
+                y += 30f
+                paint.textSize = 14f
                 paint.isFakeBoldText = false
                 canvas.drawText("Chofer: ${viaje.nombreChofer}", 60f, y, paint)
                 y += 20f
@@ -182,10 +209,14 @@ class HistorialFragment : Fragment(R.layout.fragment_historial) {
                 y += 20f
                 canvas.drawText("Unidad: U-${viaje.numeroEconomico} (Placa: ${viaje.placaUnidad})", 60f, y, paint)
 
-                y += 30f
+                y += 40f
                 paint.isFakeBoldText = true
+                paint.textSize = 16f
                 canvas.drawText("Métricas del Viaje", 50f, y, paint)
-                y += 20f
+                canvas.drawLine(50f, y + 5, 250f, y + 5, paint)
+                
+                y += 30f
+                paint.textSize = 14f
                 paint.isFakeBoldText = false
                 canvas.drawText("Distancia Recorrida: ${viaje.distancia}", 60f, y, paint)
                 y += 20f
@@ -195,17 +226,22 @@ class HistorialFragment : Fragment(R.layout.fragment_historial) {
                 y += 20f
                 canvas.drawText("Cantidad de Paradas: ${viaje.cantidadParadas}", 60f, y, paint)
 
-                y += 30f
+                y += 40f
                 paint.isFakeBoldText = true
+                paint.textSize = 16f
                 canvas.drawText("Tiempos", 50f, y, paint)
-                y += 20f
+                canvas.drawLine(50f, y + 5, 250f, y + 5, paint)
+                
+                y += 30f
+                paint.textSize = 14f
                 paint.isFakeBoldText = false
                 canvas.drawText("Inicio: ${viaje.fechaInicio?.toDate()?.let { sdf.format(it) } ?: "---"}", 60f, y, paint)
                 y += 20f
                 canvas.drawText("Fin: ${viaje.fechaFin?.toDate()?.let { sdf.format(it) } ?: "---"}", 60f, y, paint)
 
-                y += 50f
+                y = 800f
                 paint.textSize = 10f
+                paint.color = Color.GRAY
                 canvas.drawText("Documento generado automáticamente por el sistema Geofence el ${sdf.format(Date())}", 50f, y, paint)
 
                 pdfDocument.finishPage(page)
