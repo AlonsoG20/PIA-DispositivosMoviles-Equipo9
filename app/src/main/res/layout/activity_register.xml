@@ -9,10 +9,24 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="#789D9C"
-        android:paddingStart="16dp"
+        android:paddingStart="8dp"
         android:paddingTop="20dp"
         android:paddingEnd="16dp"
         android:paddingBottom="20dp">
+
+        <ImageButton
+            android:id="@+id/btn_back"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_expand_less"
+            android:rotation="-90"
+            android:padding="12dp"
+            android:scaleType="centerInside"
+            app:tint="@color/black"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
         <com.google.android.material.imageview.ShapeableImageView
             android:id="@+id/logo"
@@ -21,7 +35,7 @@
             android:scaleType="centerCrop"
             android:src="@drawable/logo_app"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintStart_toEndOf="@id/btn_back"
             app:layout_constraintTop_toTopOf="parent"
             app:shapeAppearanceOverlay="@style/CardView" />
 

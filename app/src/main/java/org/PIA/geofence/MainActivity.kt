@@ -5,6 +5,7 @@ import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.ImageView
+import android.widget.ImageButton
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.ViewCompat
@@ -30,6 +31,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var navGestion: LinearLayout
     private lateinit var navReportes: LinearLayout
     private lateinit var navbar: ConstraintLayout
+    private lateinit var btnBack: ImageButton
 
     private val auth = FirebaseAuth.getInstance()
     private val db = FirebaseFirestore.getInstance()
@@ -45,6 +47,13 @@ class MainActivity : AppCompatActivity() {
         }
 
         navbar = findViewById(R.id.navbar)
+        
+        // Inicializar botón de regreso del header
+        val header = findViewById<ConstraintLayout>(R.id.header)
+        btnBack = header.findViewById(R.id.btn_back)
+        btnBack.setOnClickListener {
+            onBackPressedDispatcher.onBackPressed()
+        }
 
         navCuenta = navbar.findViewById(R.id.nav_cuenta)
         navRutas = navbar.findViewById(R.id.nav_rutas)
@@ -138,6 +147,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadFragment(fragment: Fragment, selectedId: Int = -1) {
+        // Al cargar un fragmento principal de la navbar, ocultamos el botón de volver
+        btnBack.visibility = View.GONE
+        
         supportFragmentManager.beginTransaction()
             .replace(R.id.fragmentContainer, fragment)
             .commit()
@@ -153,5 +165,13 @@ class MainActivity : AppCompatActivity() {
         navHistorial.isSelected = (selectedId == R.id.nav_historial)
         navGestion.isSelected = (selectedId == R.id.nav_gestion)
         navReportes.isSelected = (selectedId == R.id.nav_reportes)
+    }
+
+    /**
+     * Función pública para que los fragmentos puedan mostrar el botón de volver
+     * cuando naveguen a una sub-pantalla.
+     */
+    fun showBackButton(show: Boolean) {
+        btnBack.visibility = if (show) View.VISIBLE else View.GONE
     }
 }

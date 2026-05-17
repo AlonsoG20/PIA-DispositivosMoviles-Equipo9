@@ -196,9 +196,19 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e4c48124-3f77-47f5-86a6-3339e5c5d98b" name="Changes" comment="se agrega registro por numero de telefono y cambios necesarios para el nuevo flujo de inicio de sesión">
+    <list default="true" id="e4c48124-3f77-47f5-86a6-3339e5c5d98b" name="Changes" comment="Alertas mejoradas, sincronizacion de reportes en gerente con las rutas hechas">
+      <change beforePath="$PROJECT_DIR$/.gradle/9.1.0/executionHistory/executionHistory.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/9.1.0/executionHistory/executionHistory.bin" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/9.1.0/executionHistory/executionHistory.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/9.1.0/executionHistory/executionHistory.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/9.1.0/fileHashes/fileHashes.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/9.1.0/fileHashes/fileHashes.bin" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/9.1.0/fileHashes/fileHashes.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/9.1.0/fileHashes/fileHashes.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/9.1.0/fileHashes/resourceHashesCache.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/9.1.0/fileHashes/resourceHashesCache.bin" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/file-system.probe" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/file-system.probe" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/AndroidManifest.xml" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/AndroidManifest.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/MainActivity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/MainActivity.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/ui/login/RegisterActivity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/org/PIA/geofence/ui/login/RegisterActivity.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/res/layout/activity_register.xml" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/res/layout/activity_register.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/res/layout/shared_header.xml" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/res/layout/shared_header.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -208,7 +218,7 @@
   <component name="ClangdSettings">
     <option name="formatViaClangd" value="false" />
   </component>
-  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[PhysicalDevice::serial=R8YX30CG5SF]" />
+  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[PhysicalDevice::serial=R58RC0N72ZA]" />
   <component name="ExternalProjectsData">
     <projectState path="$PROJECT_DIR$">
       <ProjectState />
@@ -231,6 +241,17 @@
                 <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
                 <item name="Geofence" type="f1a62948:ProjectNode" />
                 <item name="Tasks" type="e4a08cd1:TasksNode" />
+              </path>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="Geofence" type="f1a62948:ProjectNode" />
+                <item name="Tasks" type="e4a08cd1:TasksNode" />
+                <item name="other" type="c8890929:TasksNode$1" />
+              </path>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="Geofence" type="f1a62948:ProjectNode" />
+                <item name="Run Configurations" type="7b0102dc:RunConfigurationsNode" />
               </path>
               <path>
                 <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
@@ -277,7 +298,7 @@
     &quot;accountId&quot;: &quot;22184cd5-7fd5-4e37-9328-0837d55f6c69&quot;
   }
 }</component>
-  <component name="GradleScriptDefinitionsStorage" workingDir="$PROJECT_DIR$" gradleHome="C:\Users\osval\.gradle\wrapper\dists\gradle-9.1.0-bin\9agqghryom9wkf8r80qlhnts3\gradle-9.1.0" javaHome="C:\Program Files\Android\Android Studio\jbr" gradleVersion="9.1.0" />
+  <component name="GradleScriptDefinitionsStorage" workingDir="$PROJECT_DIR$" gradleHome="C:\Users\Angel\.gradle\wrapper\dists\gradle-9.1.0-bin\9agqghryom9wkf8r80qlhnts3\gradle-9.1.0" javaHome="C:\Program Files\Android\Android Studio\jbr" gradleVersion="9.1.0" />
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="CurrentFile" />
   </component>
@@ -301,7 +322,7 @@
     &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
     &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
     &quot;com.google.services.firebase.aqiPopupShown&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;feature/mejoras-perfil&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
     &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
     &quot;last_opened_file_path&quot;: &quot;C:/Users/Angel/AndroidStudioProjects/PIA-DispositivosMoviles-Equipo9/app/src/main/res/drawable&quot;,
     &quot;settings.editor.selected.configurable&quot;: &quot;experimental&quot;
@@ -312,11 +333,10 @@
       <recent name="C:\Users\Angel\AndroidStudioProjects\PIA-DispositivosMoviles-Equipo9\app\src\main\res\drawable" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
-      <recent name="C:\Users\osval\AndroidStudioProjects\Geofence\app" />
-      <recent name="C:\Users\diego\Desktop\PIA-DispositivosMoviles-Equipo9\app\src\main\res\drawable" />
       <recent name="C:\Users\osval\AndroidStudioProjects\Geofence\app\src\main\res\drawable" />
       <recent name="C:\Users\osval\AndroidStudioProjects\Geofence\app\src\main\res\drawable\icon" />
       <recent name="C:\Users\diego\Desktop\PIA-DispositivosMoviles-Equipo9\app" />
+      <recent name="C:\Users\osval\AndroidStudioProjects\Geofence\app" />
     </key>
   </component>
   <component name="RunManager" selected="Android App.app">
@@ -410,11 +430,8 @@
       </ExternalSystemSettings>
       <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
       <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
-      <ExternalSystemDebugDisabled>false</ExternalSystemDebugDisabled>
       <DebugAllEnabled>false</DebugAllEnabled>
       <RunAsTest>false</RunAsTest>
-      <GradleProfilingDisabled>false</GradleProfilingDisabled>
-      <GradleCoverageDisabled>false</GradleCoverageDisabled>
       <method v="2" />
     </configuration>
     <list>
@@ -651,15 +668,7 @@
       <option name="project" value="LOCAL" />
       <updated>1777874263663</updated>
     </task>
-    <task id="LOCAL-00028" summary="arreglo de alertas de incidentes, rol gerente">
-      <option name="closed" value="true" />
-      <created>1778611228806</created>
-      <option name="number" value="00028" />
-      <option name="presentableId" value="LOCAL-00028" />
-      <option name="project" value="LOCAL" />
-      <updated>1778611228807</updated>
-    </task>
-    <option name="localTasksCounter" value="29" />
+    <option name="localTasksCounter" value="28" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -674,6 +683,8 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
+    <MESSAGE value="se añade cabecera comun" />
+    <MESSAGE value="se dirige el fragment cuenta al iniciar sesion" />
     <MESSAGE value="se agrega firebase al proyecto" />
     <MESSAGE value="se añade funcionalidad de inicio de sesión. registrar cuentas, validación de sesión y contraseñas" />
     <MESSAGE value="detalle shared_navbar.xml" />
@@ -697,21 +708,19 @@
     <MESSAGE value="filtro de busqueda en historial" />
     <MESSAGE value="unidad con diferentes capacidades y gastos de gasolina, correcion de errores" />
     <MESSAGE value="Alertas mejoradas, sincronizacion de reportes en gerente con las rutas hechas" />
-    <MESSAGE value="arreglo de alertas de incidentes, rol gerente" />
-    <MESSAGE value="se agrega registro por numero de telefono y cambios necesarios para el nuevo flujo de inicio de sesión" />
-    <option name="LAST_COMMIT_MESSAGE" value="se agrega registro por numero de telefono y cambios necesarios para el nuevo flujo de inicio de sesión" />
+    <option name="LAST_COMMIT_MESSAGE" value="Alertas mejoradas, sincronizacion de reportes en gerente con las rutas hechas" />
   </component>
   <component name="play_dynamic_filters_status">
     <option name="appIdToCheckInfo">
       <map>
         <entry key="org.PIA.geofence">
           <value>
-            <CheckInfo lastCheckTimestamp="1778547951055" />
+            <CheckInfo lastCheckTimestamp="1777872069946" />
           </value>
         </entry>
         <entry key="org.PIA.geofence.test">
           <value>
-            <CheckInfo lastCheckTimestamp="1778547951056" />
+            <CheckInfo lastCheckTimestamp="1777872069945" />
           </value>
         </entry>
       </map>

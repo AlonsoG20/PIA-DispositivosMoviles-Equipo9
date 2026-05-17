@@ -9,6 +9,7 @@ import android.text.TextWatcher
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -35,6 +36,7 @@ class RegisterActivity : AppCompatActivity() {
     private lateinit var etPassword: EditText
     private lateinit var etConfirmPassword: EditText
     private lateinit var btnRegister: Button
+    private lateinit var btnBack: ImageButton
     private lateinit var tvBackToLogin: TextView
     private lateinit var tvError: TextView
     private lateinit var progressBar: ProgressBar
@@ -64,6 +66,7 @@ class RegisterActivity : AppCompatActivity() {
         etPassword = findViewById(R.id.etPassword)
         etConfirmPassword = findViewById(R.id.etConfirmPassword)
         btnRegister = findViewById(R.id.btnRegister)
+        btnBack = findViewById(R.id.btn_back)
         tvBackToLogin = findViewById(R.id.tvBackToLogin)
         tvError = findViewById(R.id.tvError)
         progressBar = findViewById(R.id.progressBar)
@@ -102,6 +105,10 @@ class RegisterActivity : AppCompatActivity() {
             val password = etPassword.text.toString().trim()
             val confirmPass = etConfirmPassword.text.toString().trim()
             viewModel.register(nombre, apellidos, phone, email, password, confirmPass)
+        }
+
+        btnBack.setOnClickListener {
+            finish()
         }
 
         tvBackToLogin.setOnClickListener {
