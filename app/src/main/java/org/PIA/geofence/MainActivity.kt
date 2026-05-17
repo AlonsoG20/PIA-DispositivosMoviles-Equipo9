@@ -32,6 +32,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var navReportes: LinearLayout
     private lateinit var navbar: ConstraintLayout
     private lateinit var btnBack: ImageButton
+    
+    // Header user info views
+    private lateinit var tvUserName: TextView
+    private lateinit var tvUserRole: TextView
 
     private val auth = FirebaseAuth.getInstance()
     private val db = FirebaseFirestore.getInstance()
@@ -48,9 +52,12 @@ class MainActivity : AppCompatActivity() {
 
         navbar = findViewById(R.id.navbar)
         
-        // Inicializar botón de regreso del header
+        // Inicializar vistas del header
         val header = findViewById<ConstraintLayout>(R.id.header)
         btnBack = header.findViewById(R.id.btn_back)
+        tvUserName = header.findViewById(R.id.tv_user_name)
+        tvUserRole = header.findViewById(R.id.tv_user_role)
+        
         btnBack.setOnClickListener {
             onBackPressedDispatcher.onBackPressed()
         }
@@ -97,6 +104,13 @@ class MainActivity : AppCompatActivity() {
             .addOnSuccessListener { document ->
                 if (document.exists()) {
                     val rol = document.getString("rol") ?: "sinRol"
+                    val nombre = document.getString("nombre") ?: ""
+                    val apellidos = document.getString("apellidos") ?: ""
+                    
+                    // Actualizar información en el header
+                    tvUserName.text = if (nombre.isNotEmpty()) "$nombre $apellidos" else "Usuario"
+                    tvUserRole.text = rol.replaceFirstChar { it.uppercase() }
+
                     setupUIByRole(rol)
                 }
             }
