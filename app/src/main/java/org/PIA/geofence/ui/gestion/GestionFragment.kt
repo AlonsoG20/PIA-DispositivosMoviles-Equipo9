@@ -39,7 +39,8 @@ class GestionFragment : Fragment() {
     private lateinit var layoutDetalle: View
     private lateinit var tvSubtitulo: TextView
     private lateinit var rvGestionGeneric: RecyclerView
-    private lateinit var tvEmpty: TextView
+    private lateinit var layoutEmpty: View
+    private lateinit var tvEmptyText: TextView
     private lateinit var fabAdd: FloatingActionButton
     private lateinit var containerHistorial: View
 
@@ -65,7 +66,8 @@ class GestionFragment : Fragment() {
         layoutDetalle = view.findViewById(R.id.layoutDetalleGestion)
         tvSubtitulo = view.findViewById(R.id.tvSubtituloGestion)
         rvGestionGeneric = view.findViewById(R.id.rvGestionGeneric)
-        tvEmpty = view.findViewById(R.id.tvEmptyGestion)
+        layoutEmpty = view.findViewById(R.id.tvEmptyGestion)
+        tvEmptyText = view.findViewById(R.id.tvEmptyTextGestion)
         fabAdd = view.findViewById(R.id.fabAddGestion)
         containerHistorial = view.findViewById(R.id.layoutHistorialInGestion)
 
@@ -112,7 +114,7 @@ class GestionFragment : Fragment() {
         rvGestionGeneric.visibility = View.VISIBLE
         containerHistorial.visibility = View.GONE
         fabAdd.visibility = View.GONE
-        tvEmpty.visibility = View.GONE
+        layoutEmpty.visibility = View.GONE
         
         activeListener?.remove()
         (activity as? MainActivity)?.showBackButton(true)
@@ -130,6 +132,7 @@ class GestionFragment : Fragment() {
     }
 
     private fun loadSolicitudes() {
+        tvEmptyText.text = "No hay solicitudes de acceso pendientes"
         adapterSinRol = UsersSinRolAdapter(emptyList(), 
             { user -> showRoleSelectionDialog(user) },
             { user -> rejectUser(user) }
@@ -146,7 +149,7 @@ class GestionFragment : Fragment() {
                     doc.toObject(User::class.java)?.apply { id = doc.id }
                 } ?: emptyList()
                 adapterSinRol.updateUsers(list)
-                tvEmpty.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
+                layoutEmpty.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
             }
     }
 
@@ -175,6 +178,7 @@ class GestionFragment : Fragment() {
     }
 
     private fun loadInstruccionesEnviadas() {
+        tvEmptyText.text = "Aún no has enviado ninguna instrucción"
         adapterInstrucciones = InstruccionAdapter(emptyList(), 
             onDeleteClick = { instruccion -> deleteInstruccion(instruccion) }
         )
@@ -205,7 +209,7 @@ class GestionFragment : Fragment() {
                 } ?: emptyList()
                 
                 adapterInstrucciones.updateData(list)
-                tvEmpty.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
+                layoutEmpty.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
             }
     }
 
@@ -245,6 +249,7 @@ class GestionFragment : Fragment() {
     }
 
     private fun loadFlota() {
+        tvEmptyText.text = "No hay unidades registradas en la flota"
         adapterUnidades = UnidadAdapter(emptyList()) { /* dialog refuel */ }
         rvGestionGeneric.adapter = adapterUnidades
         activeListener = db.collection("unidades")
@@ -253,7 +258,7 @@ class GestionFragment : Fragment() {
                 if (error != null) return@addSnapshotListener
                 val list = snapshot?.documents?.mapNotNull { it.toObject(Unidad::class.java)?.apply { id = it.id } } ?: emptyList()
                 adapterUnidades.updateUnidades(list)
-                tvEmpty.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
+                layoutEmpty.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
             }
     }
 
@@ -299,6 +304,7 @@ class GestionFragment : Fragment() {
     }
 
     private fun loadPersonal() {
+        tvEmptyText.text = "No hay personal registrado (choferes o despachadores)"
         adapterPersonal = PersonalGestionAdapter(emptyList(), 
             { user -> toggleStatus(user) }, 
             { user, role -> changeRole(user, role) }
@@ -312,7 +318,7 @@ class GestionFragment : Fragment() {
                     doc.toObject(User::class.java)?.apply { id = doc.id }
                 } ?: emptyList()
                 adapterPersonal.updateUsers(list)
-                tvEmpty.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
+                layoutEmpty.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
             }
     }
 

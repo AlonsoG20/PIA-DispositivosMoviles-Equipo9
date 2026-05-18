@@ -1,5 +1,6 @@
 package org.PIA.geofence
 
+import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import android.widget.LinearLayout
@@ -36,6 +37,7 @@ class MainActivity : AppCompatActivity() {
     // Header user info views
     private lateinit var tvUserName: TextView
     private lateinit var tvUserRole: TextView
+    private lateinit var headerLayout: ConstraintLayout
 
     private val auth = FirebaseAuth.getInstance()
     private val db = FirebaseFirestore.getInstance()
@@ -53,10 +55,10 @@ class MainActivity : AppCompatActivity() {
         navbar = findViewById(R.id.navbar)
         
         // Inicializar vistas del header
-        val header = findViewById<ConstraintLayout>(R.id.header)
-        btnBack = header.findViewById(R.id.btn_back)
-        tvUserName = header.findViewById(R.id.tv_user_name)
-        tvUserRole = header.findViewById(R.id.tv_user_role)
+        headerLayout = findViewById(R.id.header)
+        btnBack = headerLayout.findViewById(R.id.btn_back)
+        tvUserName = headerLayout.findViewById(R.id.tv_user_name)
+        tvUserRole = headerLayout.findViewById(R.id.tv_user_role)
         
         btnBack.setOnClickListener {
             // Manejar navegación hacia atrás para fragmentos anidados si es necesario
@@ -138,12 +140,12 @@ class MainActivity : AppCompatActivity() {
         navGestion.visibility = View.GONE
         navReportes.visibility = View.GONE
 
-        // Ajustar textos de la navbar para el despachador
-        val tvGestion = navbar.findViewById<TextView>(R.id.tvNavGestion)
-        val ivGestion = navbar.findViewById<ImageView>(R.id.ivNavGestion)
-
+        // Cambiar color de fondo del header según el rol
         when (rol) {
             "gerente" -> {
+                headerLayout.setBackgroundColor(Color.parseColor("#CE8CF5"))
+                
+                val tvGestion = navbar.findViewById<TextView>(R.id.tvNavGestion)
                 tvGestion.text = "Gestión"
                 navGestion.visibility = View.VISIBLE
                 navHistorial.visibility = View.GONE // SE QUITA LA PESTAÑA PARA MOVERLA DENTRO DE GESTIÓN
@@ -151,6 +153,9 @@ class MainActivity : AppCompatActivity() {
                 loadFragment(GestionFragment(), R.id.nav_gestion)
             }
             "despachador" -> {
+                headerLayout.setBackgroundColor(Color.parseColor("#FAB24B"))
+                
+                val tvGestion = navbar.findViewById<TextView>(R.id.tvNavGestion)
                 tvGestion.text = "Control"
                 navGestion.visibility = View.VISIBLE
                 navRutas.visibility = View.VISIBLE
@@ -158,11 +163,14 @@ class MainActivity : AppCompatActivity() {
                 loadFragment(ControlDespachadorFragment(), R.id.nav_gestion)
             }
             "chofer" -> {
+                headerLayout.setBackgroundColor(Color.parseColor("#789D9C"))
+                
                 navRutas.visibility = View.VISIBLE
                 navHistorial.visibility = View.VISIBLE
                 loadFragment(RutasFragment(), R.id.nav_rutas)
             }
             else -> {
+                headerLayout.setBackgroundColor(Color.parseColor("#789D9C"))
                 navbar.visibility = View.GONE
                 loadFragment(SinRolFragment())
             }
