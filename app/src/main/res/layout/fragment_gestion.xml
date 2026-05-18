@@ -240,14 +240,33 @@
                 android:padding="8dp"
                 android:visibility="gone" />
 
-            <TextView
+            <LinearLayout
                 android:id="@+id/tvEmptyGestion"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:gravity="center"
-                android:text="No hay datos para mostrar"
-                android:visibility="gone"/>
+                android:orientation="vertical"
+                android:padding="32dp"
+                android:visibility="gone">
+
+                <ImageView
+                    android:layout_width="100dp"
+                    android:layout_height="100dp"
+                    android:src="@drawable/ic_registros"
+                    android:alpha="0.3"
+                    app:tint="@color/black" />
+
+                <TextView
+                    android:id="@+id/tvEmptyTextGestion"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="No hay datos para mostrar"
+                    android:textSize="16sp"
+                    android:textColor="#888888"
+                    android:gravity="center"/>
+            </LinearLayout>
 
             <!-- Aquí se insertarán layouts específicos si es necesario -->
             <include
