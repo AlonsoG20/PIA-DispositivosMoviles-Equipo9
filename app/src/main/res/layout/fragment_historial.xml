@@ -14,7 +14,7 @@
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:hint="Buscar por chofer o unidad..."
+        android:hint="Buscar por chofer, unidad o despachador..."
         app:startIconDrawable="@android:drawable/ic_menu_search"
         app:endIconMode="clear_text"
         app:layout_constraintTop_toTopOf="parent"
@@ -28,15 +28,48 @@
             android:inputType="text"/>
     </com.google.android.material.textfield.TextInputLayout>
 
-    <!-- Contenedor de Filtros -->
+    <!-- Filtros de Rol -->
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/chipGroupRole"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        app:singleSelection="true"
+        app:selectionRequired="true"
+        app:layout_constraintTop_toBottomOf="@id/tilSearch">
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipRoleAll"
+            style="@style/Widget.MaterialComponents.Chip.Choice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Todos"
+            android:checked="true" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipRoleChofer"
+            style="@style/Widget.MaterialComponents.Chip.Choice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Choferes" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipRoleDespachador"
+            style="@style/Widget.MaterialComponents.Chip.Choice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Despachadores" />
+    </com.google.android.material.chip.ChipGroup>
+
+    <!-- Contenedor de Ordenamiento -->
     <LinearLayout
         android:id="@+id/layoutFilters"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:layout_marginTop="8dp"
-        app:layout_constraintTop_toBottomOf="@id/tilSearch"
+        android:layout_marginTop="4dp"
+        app:layout_constraintTop_toBottomOf="@id/chipGroupRole"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
@@ -54,28 +87,17 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Más Recientes"
-                android:checked="true"
-                android:textColor="@color/black"
-                app:checkedIconVisible="false"
-                app:chipStrokeWidth="1dp"
-                app:chipStrokeColor="#E0E0E0"
-                app:chipBackgroundColor="@color/white" />
+                android:checked="true" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chipDistance"
                 style="@style/Widget.MaterialComponents.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Más Distancia"
-                android:textColor="@color/black"
-                app:checkedIconVisible="false"
-                app:chipStrokeWidth="1dp"
-                app:chipStrokeColor="#E0E0E0"
-                app:chipBackgroundColor="@color/white" />
+                android:text="Más Distancia" />
 
         </com.google.android.material.chip.ChipGroup>
 
-        <!-- Botón para limpiar filtros (X) -->
         <ImageButton
             android:id="@+id/btnResetFilters"
             android:layout_width="40dp"
@@ -83,9 +105,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@android:drawable/ic_menu_close_clear_cancel"
             app:tint="@color/gray_hint"
-            android:visibility="gone"
-            tools:visibility="visible"
-            android:contentDescription="Limpiar filtros" />
+            android:visibility="gone" />
 
         <ImageButton
             android:id="@+id/btnMoreFilters"
@@ -93,12 +113,11 @@
             android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_filter_list"
-            app:tint="@color/teal_primary"
-            android:contentDescription="Ver más filtros" />
+            app:tint="@color/teal_primary" />
 
     </LinearLayout>
 
-    <!-- Indicador de viajes tomados hoy -->
+    <!-- Indicador de viajes hoy -->
     <LinearLayout
         android:id="@+id/layoutViajesHoy"
         android:layout_width="0dp"
@@ -117,8 +136,7 @@
             android:layout_width="18dp"
             android:layout_height="18dp"
             android:src="@android:drawable/ic_dialog_info"
-            app:tint="@color/teal_primary"
-            android:contentDescription="Info"/>
+            app:tint="@color/teal_primary" />
 
         <TextView
             android:id="@+id/tvContadorHoy"
@@ -131,7 +149,6 @@
 
     </LinearLayout>
 
-    <!-- RecyclerView para la lista dinámica -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvHistorial"
         android:layout_width="0dp"
@@ -142,7 +159,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Texto para cuando no hay viajes -->
     <TextView
         android:id="@+id/tvEmpty"
         android:layout_width="wrap_content"

@@ -1,14 +1,12 @@
 package org.PIA.geofence.ui.gestion
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Button
-import android.widget.FrameLayout
-import android.widget.ImageView
-import android.widget.LinearLayout
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
@@ -29,6 +27,7 @@ import org.PIA.geofence.data.Instruccion
 import org.PIA.geofence.data.Unidad
 import org.PIA.geofence.data.User
 import org.PIA.geofence.ui.historial.HistorialFragment
+import java.util.Calendar
 
 class GestionFragment : Fragment() {
 
@@ -83,12 +82,14 @@ class GestionFragment : Fragment() {
         view.findViewById<View>(R.id.menuInstrucciones).setOnClickListener {
             showSection("Instrucciones Enviadas")
             loadInstruccionesEnviadas()
+            fabAdd.visibility = View.VISIBLE
+            fabAdd.setOnClickListener { showInstructionDialogGlobal() }
         }
         view.findViewById<View>(R.id.menuFlota).setOnClickListener {
             showSection("Control de Flota")
             loadFlota()
             fabAdd.visibility = View.VISIBLE
-            fabAdd.setOnClickListener { /* Lógica para añadir unidad */ }
+            fabAdd.setOnClickListener { showAddUnidadDialog() }
         }
         view.findViewById<View>(R.id.menuPersonal).setOnClickListener {
             showSection("Gestión de Personal")
@@ -98,10 +99,8 @@ class GestionFragment : Fragment() {
             showSection("Historial de Viajes")
             rvGestionGeneric.visibility = View.GONE
             containerHistorial.visibility = View.VISIBLE
-            // El HistorialFragment ya maneja su propia lógica, 
-            // pero como está incluido con <include>, necesitamos asegurarnos que se inicialice.
             childFragmentManager.beginTransaction()
-                .replace(R.id.containerGestionContent, HistorialFragment())
+                .replace(R.id.layoutHistorialInGestion, HistorialFragment())
                 .commit()
         }
     }
@@ -131,28 +130,117 @@ class GestionFragment : Fragment() {
     }
 
     private fun loadSolicitudes() {
-        adapterSinRol = UsersSinRolAdapter(emptyList()) { user, role -> assignRole(user, role) }
+        adapterSinRol = UsersSinRolAdapter(emptyList(), 
+            { user -> showRoleSelectionDialog(user) },
+            { user -> rejectUser(user) }
+        )
         rvGestionGeneric.adapter = adapterSinRol
         activeListener = db.collection("usuarios")
             .whereEqualTo("rol", "sinRol")
-            .addSnapshotListener { snapshot, _ ->
-                val list = snapshot?.toObjects(User::class.java) ?: emptyList()
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e("GestionFragment", "Error solicitudes: ${error.message}")
+                    return@addSnapshotListener
+                }
+                val list = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(User::class.java)?.apply { id = doc.id }
+                } ?: emptyList()
                 adapterSinRol.updateUsers(list)
                 tvEmpty.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
             }
     }
 
+    private fun showRoleSelectionDialog(user: User) {
+        val roles = arrayOf("Chofer", "Despachador")
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Asignar Rol a ${user.nombre}")
+            .setItems(roles) { _, which ->
+                val selectedRole = roles[which].lowercase()
+                assignRole(user, selectedRole)
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun rejectUser(user: User) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Rechazar Solicitud")
+            .setMessage("¿Estás seguro de rechazar a ${user.nombre}?")
+            .setPositiveButton("Sí, eliminar") { _, _ ->
+                db.collection("usuarios").document(user.id).delete()
+                    .addOnSuccessListener { Toast.makeText(context, "Usuario rechazado", Toast.LENGTH_SHORT).show() }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
     private fun loadInstruccionesEnviadas() {
-        adapterInstrucciones = InstruccionAdapter(emptyList())
+        adapterInstrucciones = InstruccionAdapter(emptyList(), 
+            onDeleteClick = { instruccion -> deleteInstruccion(instruccion) }
+        )
         rvGestionGeneric.adapter = adapterInstrucciones
         val uid = auth.currentUser?.uid ?: return
+        
         activeListener = db.collection("instrucciones")
             .whereEqualTo("remitenteId", uid)
             .orderBy("fechaCreacion", Query.Direction.DESCENDING)
-            .addSnapshotListener { snapshot, _ ->
-                val list = snapshot?.toObjects(Instruccion::class.java) ?: emptyList()
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e("GestionFragment", "Error instrucciones enviadas: ${error.message}")
+                    return@addSnapshotListener
+                }
+                val list = snapshot?.documents?.mapNotNull { doc ->
+                    val ins = doc.toObject(Instruccion::class.java)?.apply { id = doc.id }
+                    
+                    // Lógica de caducidad: Si tiene más de 24h y sigue pendiente, marcar como no realizado
+                    if (ins != null && ins.estado == "pendiente" && ins.fechaCreacion != null) {
+                        val limit = Calendar.getInstance()
+                        limit.add(Calendar.DAY_OF_YEAR, -1)
+                        if (ins.fechaCreacion!!.toDate().before(limit.time)) {
+                            db.collection("instrucciones").document(ins.id).update("estado", "no realizado")
+                            return@mapNotNull ins.copy(estado = "no realizado")
+                        }
+                    }
+                    ins
+                } ?: emptyList()
+                
                 adapterInstrucciones.updateData(list)
                 tvEmpty.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
+            }
+    }
+
+    private fun deleteInstruccion(instruccion: Instruccion) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Eliminar Instrucción")
+            .setMessage("¿Deseas quitar esta instrucción de la lista?")
+            .setPositiveButton("Eliminar") { _, _ ->
+                db.collection("instrucciones").document(instruccion.id).delete()
+                    .addOnSuccessListener { Toast.makeText(context, "Instrucción eliminada", Toast.LENGTH_SHORT).show() }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun showInstructionDialogGlobal() {
+        db.collection("usuarios")
+            .whereEqualTo("rol", "despachador")
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val despachadores = snapshot.documents.mapNotNull { doc ->
+                    doc.toObject(User::class.java)?.apply { id = doc.id }
+                }
+                if (despachadores.isEmpty()) {
+                    Toast.makeText(context, "No hay despachadores registrados", Toast.LENGTH_SHORT).show()
+                    return@addOnSuccessListener
+                }
+                
+                val names = despachadores.map { it.nombreCompleto }.toTypedArray()
+                MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("Seleccionar Despachador")
+                    .setItems(names) { _, which ->
+                        showInstructionDialog(despachadores[which])
+                    }
+                    .show()
             }
     }
 
@@ -161,24 +249,68 @@ class GestionFragment : Fragment() {
         rvGestionGeneric.adapter = adapterUnidades
         activeListener = db.collection("unidades")
             .orderBy("placa", Query.Direction.ASCENDING)
-            .addSnapshotListener { snapshot, _ ->
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) return@addSnapshotListener
                 val list = snapshot?.documents?.mapNotNull { it.toObject(Unidad::class.java)?.apply { id = it.id } } ?: emptyList()
                 adapterUnidades.updateUnidades(list)
                 tvEmpty.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
             }
     }
 
+    private fun showAddUnidadDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_add_unidad, null)
+        val etPlaca = dialogView.findViewById<TextInputEditText>(R.id.etPlaca)
+        val etEconomico = dialogView.findViewById<TextInputEditText>(R.id.etEconomico)
+        val etModelo = dialogView.findViewById<TextInputEditText>(R.id.etModelo)
+        val etConsumo = dialogView.findViewById<TextInputEditText>(R.id.etConsumo)
+        val etCapacidad = dialogView.findViewById<TextInputEditText>(R.id.etCapacidad)
+
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setView(dialogView)
+            .create()
+
+        dialogView.findViewById<Button>(R.id.btnCancelar).setOnClickListener { dialog.dismiss() }
+        dialogView.findViewById<Button>(R.id.btnGuardar).setOnClickListener {
+            val placa = etPlaca.text.toString().trim()
+            val economico = etEconomico.text.toString().trim()
+            val modelo = etModelo.text.toString().trim()
+            val consumo = etConsumo.text.toString().toDoubleOrNull() ?: 0.12
+            val capacidad = etCapacidad.text.toString().toDoubleOrNull() ?: 100.0
+
+            if (placa.isNotEmpty() && economico.isNotEmpty()) {
+                val unidad = hashMapOf(
+                    "placa" to placa,
+                    "numeroEconomico" to economico,
+                    "modelo" to modelo,
+                    "consumoKmL" to consumo,
+                    "capacidadTanque" to capacidad,
+                    "estado" to "0",
+                    "ubicacionActual" to null
+                )
+                db.collection("unidades").add(unidad).addOnSuccessListener {
+                    Toast.makeText(context, "Unidad agregada", Toast.LENGTH_SHORT).show()
+                    dialog.dismiss()
+                }
+            } else {
+                Toast.makeText(context, "Placa y Número Económico son obligatorios", Toast.LENGTH_SHORT).show()
+            }
+        }
+        dialog.show()
+    }
+
     private fun loadPersonal() {
         adapterPersonal = PersonalGestionAdapter(emptyList(), 
             { user -> toggleStatus(user) }, 
-            { user, role -> changeRole(user, role) },
-            { user -> showInstructionDialog(user) }
+            { user, role -> changeRole(user, role) }
         )
         rvGestionGeneric.adapter = adapterPersonal
         activeListener = db.collection("usuarios")
             .whereIn("rol", listOf("chofer", "despachador"))
-            .addSnapshotListener { snapshot, _ ->
-                val list = snapshot?.toObjects(User::class.java) ?: emptyList()
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) return@addSnapshotListener
+                val list = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(User::class.java)?.apply { id = doc.id }
+                } ?: emptyList()
                 adapterPersonal.updateUsers(list)
                 tvEmpty.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
             }
@@ -240,7 +372,6 @@ class GestionFragment : Fragment() {
         }
     }
 
-    // Helper methods for status/role
     private fun toggleStatus(user: User) {
         val newStatus = if (user.estado == "2") "0" else "2"
         db.collection("usuarios").document(user.id).update("estado", newStatus)

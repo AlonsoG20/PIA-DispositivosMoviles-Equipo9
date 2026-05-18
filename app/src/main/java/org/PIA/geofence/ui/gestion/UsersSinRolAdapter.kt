@@ -11,15 +11,16 @@ import org.PIA.geofence.data.User
 
 class UsersSinRolAdapter(
     private var users: List<User>,
-    private val onRoleAssigned: (User, String) -> Unit
+    private val onAcceptClicked: (User) -> Unit,
+    private val onRejectClicked: (User) -> Unit
 ) : RecyclerView.Adapter<UsersSinRolAdapter.UserViewHolder>() {
 
     class UserViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvName: TextView = view.findViewById(R.id.tvUserName)
         val tvEmail: TextView = view.findViewById(R.id.tvUserEmail)
         val tvPhone: TextView = view.findViewById(R.id.tvUserPhone)
-        val btnChofer: Button = view.findViewById(R.id.btnAsignarChofer)
-        val btnDespachador: Button = view.findViewById(R.id.btnAsignarDespachador)
+        val btnAceptar: Button = view.findViewById(R.id.btnAceptar)
+        val btnRechazar: Button = view.findViewById(R.id.btnRechazar)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): UserViewHolder {
@@ -34,8 +35,8 @@ class UsersSinRolAdapter(
         holder.tvEmail.text = user.emailSeguro
         holder.tvPhone.text = user.telefonoSeguro
 
-        holder.btnChofer.setOnClickListener { onRoleAssigned(user, "chofer") }
-        holder.btnDespachador.setOnClickListener { onRoleAssigned(user, "despachador") }
+        holder.btnAceptar.setOnClickListener { onAcceptClicked(user) }
+        holder.btnRechazar.setOnClickListener { onRejectClicked(user) }
     }
 
     override fun getItemCount() = users.size

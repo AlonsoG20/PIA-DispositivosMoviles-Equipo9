@@ -13,8 +13,7 @@ import org.PIA.geofence.data.User
 class PersonalGestionAdapter(
     private var users: List<User>,
     private val onStatusToggled: (User) -> Unit,
-    private val onRoleChanged: (User, String) -> Unit,
-    private val onSendInstruction: (User) -> Unit
+    private val onRoleChanged: (User, String) -> Unit
 ) : RecyclerView.Adapter<PersonalGestionAdapter.PersonalViewHolder>() {
 
     class PersonalViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -23,7 +22,6 @@ class PersonalGestionAdapter(
         val tvStatus: TextView = view.findViewById(R.id.tvUserStatus)
         val btnToggle: Button = view.findViewById(R.id.btnToggleStatus)
         val btnChangeRole: Button = view.findViewById(R.id.btnChangeRole)
-        val btnSendInstruction: Button = view.findViewById(R.id.btnSendInstruction)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PersonalViewHolder {
@@ -53,13 +51,10 @@ class PersonalGestionAdapter(
 
         // Lógica de cambio de rol
         val nuevoRol = if (rolActual == "chofer") "despachador" else "chofer"
-        
-        // Solo mostrar botón de instrucción para despachadores
-        holder.btnSendInstruction.visibility = if (rolActual == "despachador") View.VISIBLE else View.GONE
+        holder.btnChangeRole.text = "Cambiar a $nuevoRol"
 
         holder.btnToggle.setOnClickListener { onStatusToggled(user) }
         holder.btnChangeRole.setOnClickListener { onRoleChanged(user, nuevoRol) }
-        holder.btnSendInstruction.setOnClickListener { onSendInstruction(user) }
     }
 
     override fun getItemCount() = users.size

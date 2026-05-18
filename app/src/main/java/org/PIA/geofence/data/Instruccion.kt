@@ -11,6 +11,6 @@ data class Instruccion(
     val remitenteNombre: String = "",
     val destinatarioId: String = "",
     val estado: String = "pendiente", // "pendiente", "completada"
-    val fechaCreacion: Timestamp = Timestamp.now(),
+    val fechaCreacion: Timestamp? = null,
     val fechaCompletado: Timestamp? = null
 )

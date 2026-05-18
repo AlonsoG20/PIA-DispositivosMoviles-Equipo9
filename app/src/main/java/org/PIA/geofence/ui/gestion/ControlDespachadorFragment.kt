@@ -2,6 +2,7 @@ package org.PIA.geofence.ui.gestion
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -301,7 +302,9 @@ class ControlDespachadorFragment : Fragment() {
         choferesListener = db.collection("usuarios")
             .whereEqualTo("rol", "chofer")
             .addSnapshotListener { snapshot, _ ->
-                val list = snapshot?.toObjects(User::class.java) ?: emptyList()
+                val list = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(User::class.java)?.apply { id = doc.id }
+                } ?: emptyList()
                 allChoferes = list
                 applyFilter()
             }
@@ -316,13 +319,18 @@ class ControlDespachadorFragment : Fragment() {
                 tvEmptyPOI.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
             }
 
-        // Cargar instrucciones enviadas por el gerente al despachador actual
         val currentUserId = auth.currentUser?.uid ?: return
         instruccionesListener = db.collection("instrucciones")
             .whereEqualTo("destinatarioId", currentUserId)
             .orderBy("fechaCreacion", Query.Direction.DESCENDING)
-            .addSnapshotListener { snapshot, _ ->
-                val list = snapshot?.toObjects(Instruccion::class.java) ?: emptyList()
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e("ControlDespachador", "Error instrucciones: ${error.message}")
+                    return@addSnapshotListener
+                }
+                val list = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(Instruccion::class.java)?.apply { id = doc.id }
+                } ?: emptyList()
                 adapterInstrucciones.updateData(list)
                 tvEmptyInstrucciones.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
             }

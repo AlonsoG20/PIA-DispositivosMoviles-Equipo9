@@ -4,7 +4,7 @@ import com.google.firebase.firestore.DocumentId
 
 data class User(
     @DocumentId
-    val id: String = "",
+    var id: String = "",
     val nombre: String? = null,
     val apellidos: String? = null,
     val email: String? = null,
@@ -13,7 +13,6 @@ data class User(
     val activo: Boolean? = null,
     val estado: String? = "0" // "0" = Disponible, "1" = Ocupado
 ) {
-    // Propiedades calculadas seguras para evitar errores de nulos en la UI
     val nombreCompleto: String get() = "${nombre ?: ""} ${apellidos ?: ""}".trim().ifEmpty { "Sin nombre" }
     val emailSeguro: String get() = email ?: "Sin correo"
     val telefonoSeguro: String get() = telefono ?: "Sin teléfono"
