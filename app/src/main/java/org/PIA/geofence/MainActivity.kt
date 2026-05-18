@@ -59,7 +59,15 @@ class MainActivity : AppCompatActivity() {
         tvUserRole = header.findViewById(R.id.tv_user_role)
         
         btnBack.setOnClickListener {
-            onBackPressedDispatcher.onBackPressed()
+            // Manejar navegación hacia atrás para fragmentos anidados si es necesario
+            val currentFragment = supportFragmentManager.findFragmentById(R.id.fragmentContainer)
+            if (currentFragment is GestionFragment) {
+                if (!currentFragment.onBackPressed()) {
+                    onBackPressedDispatcher.onBackPressed()
+                }
+            } else {
+                onBackPressedDispatcher.onBackPressed()
+            }
         }
 
         navCuenta = navbar.findViewById(R.id.nav_cuenta)
@@ -138,7 +146,7 @@ class MainActivity : AppCompatActivity() {
             "gerente" -> {
                 tvGestion.text = "Gestión"
                 navGestion.visibility = View.VISIBLE
-                navHistorial.visibility = View.VISIBLE
+                navHistorial.visibility = View.GONE // SE QUITA LA PESTAÑA PARA MOVERLA DENTRO DE GESTIÓN
                 navReportes.visibility = View.VISIBLE
                 loadFragment(GestionFragment(), R.id.nav_gestion)
             }

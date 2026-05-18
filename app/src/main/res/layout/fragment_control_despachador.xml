@@ -22,9 +22,9 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <!-- FLOTA -->
+        <!-- INSTRUCCIONES DEL GERENTE -->
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/cardFlota"
+            android:id="@+id/cardInstruccionesRecibidas"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
@@ -32,6 +32,64 @@
             app:cardElevation="2dp"
             app:strokeWidth="0dp"
             app:layout_constraintTop_toBottomOf="@id/titleControl">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingBottom="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="16dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_reportes"
+                        app:tint="@color/teal_primary" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:text="Instrucciones de Gerencia"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvEmptyInstrucciones"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:padding="20dp"
+                    android:text="No hay instrucciones pendientes"
+                    android:textColor="@color/gray_hint"
+                    android:visibility="gone" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rvInstruccionesDespachador"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    tools:listitem="@layout/item_instruccion" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- FLOTA -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardFlota"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp"
+            app:strokeWidth="0dp"
+            app:layout_constraintTop_toBottomOf="@id/cardInstruccionesRecibidas">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -102,16 +160,6 @@
                     android:layout_height="wrap_content"
                     tools:listitem="@layout/item_unidad" />
 
-                <Button
-                    android:id="@+id/btnShowMoreFlota"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Mostrar más"
-                    android:textAllCaps="false"
-                    android:textColor="@color/teal_primary"
-                    android:visibility="gone" />
-
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -181,16 +229,6 @@
                     android:layout_height="wrap_content"
                     tools:listitem="@layout/item_poi" />
 
-                <Button
-                    android:id="@+id/btnShowMorePOI"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Mostrar más"
-                    android:textAllCaps="false"
-                    android:textColor="@color/teal_primary"
-                    android:visibility="gone" />
-
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -235,7 +273,6 @@
                         android:textStyle="bold" />
                 </LinearLayout>
 
-                <!-- FILTROS CHOFERES -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

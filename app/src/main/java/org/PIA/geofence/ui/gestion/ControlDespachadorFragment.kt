@@ -22,6 +22,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import org.PIA.geofence.R
+import org.PIA.geofence.data.Instruccion
 import org.PIA.geofence.data.PuntoInteres
 import org.PIA.geofence.data.Unidad
 import org.PIA.geofence.data.User
@@ -33,10 +34,12 @@ class ControlDespachadorFragment : Fragment() {
     private lateinit var adapterUnidades: UnidadAdapter
     private lateinit var adapterChoferes: ChoferAdapter
     private lateinit var adapterPOI: PoiAdapter
+    private lateinit var adapterInstrucciones: InstruccionAdapter
 
     private lateinit var tvEmptyFlota: TextView
     private lateinit var tvEmptyChoferes: TextView
     private lateinit var tvEmptyPOI: TextView
+    private lateinit var tvEmptyInstrucciones: TextView
 
     private lateinit var btnFilterAll: MaterialButton
     private lateinit var btnFilterDisponible: MaterialButton
@@ -50,6 +53,7 @@ class ControlDespachadorFragment : Fragment() {
     private var unidadesListener: ListenerRegistration? = null
     private var choferesListener: ListenerRegistration? = null
     private var poiListener: ListenerRegistration? = null
+    private var instruccionesListener: ListenerRegistration? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -67,6 +71,7 @@ class ControlDespachadorFragment : Fragment() {
         val rvUnidades = view.findViewById<RecyclerView>(R.id.rvFlotaDespachador)
         val rvChoferes = view.findViewById<RecyclerView>(R.id.rvChoferesDespachador)
         val rvPOI = view.findViewById<RecyclerView>(R.id.rvPOIDespachador)
+        val rvInstrucciones = view.findViewById<RecyclerView>(R.id.rvInstruccionesDespachador)
         
         val btnAddUnidad = view.findViewById<Button>(R.id.btnAddUnidadDespachador)
         val btnAddPOI = view.findViewById<Button>(R.id.btnAddPOI)
@@ -79,6 +84,7 @@ class ControlDespachadorFragment : Fragment() {
         tvEmptyFlota = view.findViewById(R.id.tvEmptyFlota)
         tvEmptyChoferes = view.findViewById(R.id.tvEmptyChoferes)
         tvEmptyPOI = view.findViewById(R.id.tvEmptyPOI)
+        tvEmptyInstrucciones = view.findViewById(R.id.tvEmptyInstrucciones)
 
         adapterUnidades = UnidadAdapter(emptyList()) { unidad ->
             showRefuelDialog(unidad)
@@ -95,6 +101,12 @@ class ControlDespachadorFragment : Fragment() {
         }
         rvPOI.layoutManager = LinearLayoutManager(context)
         rvPOI.adapter = adapterPOI
+
+        adapterInstrucciones = InstruccionAdapter(emptyList()) { instruccion ->
+            marcarInstruccionCompletada(instruccion)
+        }
+        rvInstrucciones.layoutManager = LinearLayoutManager(context)
+        rvInstrucciones.adapter = adapterInstrucciones
 
         btnAddUnidad.setOnClickListener {
             showAddUnidadDialog()
@@ -123,6 +135,17 @@ class ControlDespachadorFragment : Fragment() {
                 btnFilterInactivo.visibility = View.GONE
             }
         }
+    }
+
+    private fun marcarInstruccionCompletada(instruccion: Instruccion) {
+        db.collection("instrucciones").document(instruccion.id)
+            .update(
+                "estado", "completada",
+                "fechaCompletado", Timestamp.now()
+            )
+            .addOnSuccessListener {
+                Toast.makeText(context, "Instrucción marcada como hecha", Toast.LENGTH_SHORT).show()
+            }
     }
 
     private fun showRefuelDialog(unidad: Unidad) {
@@ -292,6 +315,17 @@ class ControlDespachadorFragment : Fragment() {
                 adapterPOI.updatePois(list)
                 tvEmptyPOI.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
             }
+
+        // Cargar instrucciones enviadas por el gerente al despachador actual
+        val currentUserId = auth.currentUser?.uid ?: return
+        instruccionesListener = db.collection("instrucciones")
+            .whereEqualTo("destinatarioId", currentUserId)
+            .orderBy("fechaCreacion", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, _ ->
+                val list = snapshot?.toObjects(Instruccion::class.java) ?: emptyList()
+                adapterInstrucciones.updateData(list)
+                tvEmptyInstrucciones.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
+            }
     }
 
     override fun onDestroyView() {
@@ -299,5 +333,6 @@ class ControlDespachadorFragment : Fragment() {
         unidadesListener?.remove()
         choferesListener?.remove()
         poiListener?.remove()
+        instruccionesListener?.remove()
     }
 }
