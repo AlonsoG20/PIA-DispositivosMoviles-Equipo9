@@ -61,13 +61,78 @@
                         android:textStyle="bold" />
                 </LinearLayout>
 
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="16dp"
+                    android:paddingBottom="8dp"
+                    android:gravity="center">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnInstFilterPendiente"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="4dp"
+                        android:text="Pend."
+                        android:textSize="10sp"
+                        app:cornerRadius="20dp"
+                        android:padding="0dp"
+                        app:strokeColor="@color/teal_primary"
+                        android:textColor="@color/teal_primary" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnInstFilterGuardada"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginHorizontal="4dp"
+                        android:text="Guard."
+                        android:textSize="10sp"
+                        app:cornerRadius="20dp"
+                        android:padding="0dp"
+                        app:strokeColor="@color/teal_primary"
+                        android:textColor="@color/teal_primary" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnInstFilterCompletada"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginHorizontal="4dp"
+                        android:text="Compl."
+                        android:textSize="10sp"
+                        app:cornerRadius="20dp"
+                        android:padding="0dp"
+                        app:strokeColor="@color/teal_primary"
+                        android:textColor="@color/teal_primary" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnInstFilterDescartada"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="4dp"
+                        android:text="Desc."
+                        android:textSize="10sp"
+                        app:cornerRadius="20dp"
+                        android:padding="0dp"
+                        app:strokeColor="@color/teal_primary"
+                        android:textColor="@color/teal_primary" />
+                </LinearLayout>
+
                 <TextView
                     android:id="@+id/tvEmptyInstrucciones"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:padding="20dp"
-                    android:text="No hay instrucciones pendientes"
+                    android:text="No hay instrucciones"
                     android:textColor="@color/gray_hint"
                     android:visibility="gone" />
 

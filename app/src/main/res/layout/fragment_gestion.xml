@@ -85,7 +85,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:layout_marginStart="16dp"
-                    android:text="Enviar Instrucciones"
+                    android:text="Instrucciones"
                     android:textSize="18sp"
                     android:textStyle="bold" />
                 <ImageView
@@ -225,6 +225,103 @@
             android:textColor="@color/black"
             android:background="@color/white"
             android:elevation="2dp" />
+
+        <LinearLayout
+            android:id="@+id/layoutFiltrosInstrucciones"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="8dp"
+            android:background="@color/white"
+            android:visibility="gone">
+
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:scrollbars="none">
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingBottom="4dp">
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnFiltroGralTodos"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:text="Todos"
+                        android:textSize="10sp"
+                        android:padding="0dp"
+                        android:layout_marginEnd="4dp"
+                        app:cornerRadius="18dp" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnFiltroGralPendiente"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:text="Pend."
+                        android:textSize="10sp"
+                        android:padding="0dp"
+                        android:layout_marginEnd="4dp"
+                        app:cornerRadius="18dp" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnFiltroGralGuardada"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:text="Guard."
+                        android:textSize="10sp"
+                        android:padding="0dp"
+                        android:layout_marginEnd="4dp"
+                        app:cornerRadius="18dp" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnFiltroGralCompletada"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:text="Compl."
+                        android:textSize="10sp"
+                        android:padding="0dp"
+                        android:layout_marginEnd="4dp"
+                        app:cornerRadius="18dp" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnFiltroGralDescartada"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:text="Desc."
+                        android:textSize="10sp"
+                        android:padding="0dp"
+                        app:cornerRadius="18dp" />
+                </LinearLayout>
+            </HorizontalScrollView>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="4dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnFiltroBloqueo"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:text="Bloqueados: Todos"
+                    android:textSize="10sp"
+                    android:paddingHorizontal="8dp"
+                    app:cornerRadius="18dp"
+                    android:layout_marginEnd="8dp" />
+
+                <Spinner
+                    android:id="@+id/spinnerFiltroMes"
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_spinner" />
+            </LinearLayout>
+        </LinearLayout>
 
         <FrameLayout
             android:id="@+id/containerGestionContent"

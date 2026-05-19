@@ -5,14 +5,17 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.textfield.TextInputEditText
@@ -43,12 +46,28 @@ class GestionFragment : Fragment() {
     private lateinit var tvEmptyText: TextView
     private lateinit var fabAdd: FloatingActionButton
     private lateinit var containerHistorial: View
+    
+    // Filtros Instrucciones
+    private lateinit var layoutFiltrosInstrucciones: View
+    private lateinit var btnFiltroGralTodos: MaterialButton
+    private lateinit var btnFiltroGralPendiente: MaterialButton
+    private lateinit var btnFiltroGralGuardada: MaterialButton
+    private lateinit var btnFiltroGralCompletada: MaterialButton
+    private lateinit var btnFiltroGralDescartada: MaterialButton
+    private lateinit var btnFiltroBloqueo: MaterialButton
+    private lateinit var spinnerFiltroMes: Spinner
 
     // Adapters
     private lateinit var adapterSinRol: UsersSinRolAdapter
     private lateinit var adapterUnidades: UnidadAdapter
     private lateinit var adapterPersonal: PersonalGestionAdapter
     private lateinit var adapterInstrucciones: InstruccionAdapter
+
+    // Estado filtros
+    private var currentStatusFilter = "todos"
+    private var currentBlockFilter = 0 // 0: Todos, 1: Excluir bloqueados, 2: Solo bloqueados
+    private var currentMonthFilter = -1 // -1: Todos, 0-11: Enero-Diciembre
+    private var allInstruccionesRaw: List<Instruccion> = emptyList()
 
     // Listeners
     private var activeListener: ListenerRegistration? = null
@@ -70,10 +89,21 @@ class GestionFragment : Fragment() {
         tvEmptyText = view.findViewById(R.id.tvEmptyTextGestion)
         fabAdd = view.findViewById(R.id.fabAddGestion)
         containerHistorial = view.findViewById(R.id.layoutHistorialInGestion)
+        
+        // Filtros UI
+        layoutFiltrosInstrucciones = view.findViewById(R.id.layoutFiltrosInstrucciones)
+        btnFiltroGralTodos = view.findViewById(R.id.btnFiltroGralTodos)
+        btnFiltroGralPendiente = view.findViewById(R.id.btnFiltroGralPendiente)
+        btnFiltroGralGuardada = view.findViewById(R.id.btnFiltroGralGuardada)
+        btnFiltroGralCompletada = view.findViewById(R.id.btnFiltroGralCompletada)
+        btnFiltroGralDescartada = view.findViewById(R.id.btnFiltroGralDescartada)
+        btnFiltroBloqueo = view.findViewById(R.id.btnFiltroBloqueo)
+        spinnerFiltroMes = view.findViewById(R.id.spinnerFiltroMes)
 
         rvGestionGeneric.layoutManager = LinearLayoutManager(context)
 
         setupMenuClicks(view)
+        setupFiltrosInstrucciones()
     }
 
     private fun setupMenuClicks(view: View) {
@@ -82,7 +112,8 @@ class GestionFragment : Fragment() {
             loadSolicitudes()
         }
         view.findViewById<View>(R.id.menuInstrucciones).setOnClickListener {
-            showSection("Instrucciones Enviadas")
+            showSection("Instrucciones")
+            layoutFiltrosInstrucciones.visibility = View.VISIBLE
             loadInstruccionesEnviadas()
             fabAdd.visibility = View.VISIBLE
             fabAdd.setOnClickListener { showInstructionDialogGlobal() }
@@ -107,6 +138,103 @@ class GestionFragment : Fragment() {
         }
     }
 
+    private fun setupFiltrosInstrucciones() {
+        btnFiltroGralTodos.setOnClickListener { updateStatusFilter("todos") }
+        btnFiltroGralPendiente.setOnClickListener { updateStatusFilter("pendiente") }
+        btnFiltroGralGuardada.setOnClickListener { updateStatusFilter("guardada") }
+        btnFiltroGralCompletada.setOnClickListener { updateStatusFilter("completada") }
+        btnFiltroGralDescartada.setOnClickListener { updateStatusFilter("descartada") }
+
+        btnFiltroBloqueo.setOnClickListener {
+            currentBlockFilter = (currentBlockFilter + 1) % 3
+            updateBlockFilterUI()
+            applyAllInstruccionesFilters()
+        }
+
+        val meses = arrayOf("Todos los meses", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre")
+        val monthAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, meses)
+        spinnerFiltroMes.adapter = monthAdapter
+        spinnerFiltroMes.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                currentMonthFilter = position - 1
+                applyAllInstruccionesFilters()
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+        
+        updateStatusFilterUI()
+        updateBlockFilterUI()
+    }
+
+    private fun updateStatusFilter(filter: String) {
+        currentStatusFilter = filter
+        updateStatusFilterUI()
+        applyAllInstruccionesFilters()
+    }
+
+    private fun updateStatusFilterUI() {
+        if (!isAdded) return
+        val primary = ContextCompat.getColor(requireContext(), R.color.teal_primary)
+        val white = ContextCompat.getColor(requireContext(), android.R.color.white)
+
+        val buttons = mapOf(
+            "todos" to btnFiltroGralTodos,
+            "pendiente" to btnFiltroGralPendiente,
+            "guardada" to btnFiltroGralGuardada,
+            "completada" to btnFiltroGralCompletada,
+            "descartada" to btnFiltroGralDescartada
+        )
+
+        buttons.forEach { (key, btn) ->
+            if (key == currentStatusFilter) {
+                btn.setBackgroundColor(primary)
+                btn.setTextColor(white)
+            } else {
+                btn.setBackgroundColor(white)
+                btn.setTextColor(primary)
+            }
+        }
+    }
+
+    private fun updateBlockFilterUI() {
+        if (!isAdded) return
+        btnFiltroBloqueo.text = when (currentBlockFilter) {
+            1 -> "Bloqueados: Excluir"
+            2 -> "Bloqueados: Solo"
+            else -> "Bloqueados: Todos"
+        }
+    }
+
+    private fun applyAllInstruccionesFilters() {
+        var filtered = allInstruccionesRaw
+
+        // Filtro de Estado
+        if (currentStatusFilter != "todos") {
+            filtered = filtered.filter { it.estado == currentStatusFilter }
+        }
+
+        // Filtro de Bloqueo
+        filtered = when (currentBlockFilter) {
+            1 -> filtered.filter { it.bloqueado == 0 }
+            2 -> filtered.filter { it.bloqueado == 1 }
+            else -> filtered
+        }
+
+        // Filtro de Mes
+        if (currentMonthFilter != -1) {
+            filtered = filtered.filter { inst ->
+                inst.fechaCreacion?.let {
+                    val cal = Calendar.getInstance()
+                    cal.time = it.toDate()
+                    cal.get(Calendar.MONTH) == currentMonthFilter
+                } ?: false
+            }
+        }
+
+        adapterInstrucciones.updateData(filtered)
+        layoutEmpty.visibility = if (filtered.isEmpty()) View.VISIBLE else View.GONE
+    }
+
     private fun showSection(titulo: String) {
         layoutMenu.visibility = View.GONE
         layoutDetalle.visibility = View.VISIBLE
@@ -115,6 +243,7 @@ class GestionFragment : Fragment() {
         containerHistorial.visibility = View.GONE
         fabAdd.visibility = View.GONE
         layoutEmpty.visibility = View.GONE
+        layoutFiltrosInstrucciones.visibility = View.GONE
         
         activeListener?.remove()
         (activity as? MainActivity)?.showBackButton(true)
@@ -194,22 +323,11 @@ class GestionFragment : Fragment() {
                     return@addSnapshotListener
                 }
                 val list = snapshot?.documents?.mapNotNull { doc ->
-                    val ins = doc.toObject(Instruccion::class.java)?.apply { id = doc.id }
-                    
-                    // Lógica de caducidad: Si tiene más de 24h y sigue pendiente, marcar como no realizado
-                    if (ins != null && ins.estado == "pendiente" && ins.fechaCreacion != null) {
-                        val limit = Calendar.getInstance()
-                        limit.add(Calendar.DAY_OF_YEAR, -1)
-                        if (ins.fechaCreacion!!.toDate().before(limit.time)) {
-                            db.collection("instrucciones").document(ins.id).update("estado", "no realizado")
-                            return@mapNotNull ins.copy(estado = "no realizado")
-                        }
-                    }
-                    ins
+                    doc.toObject(Instruccion::class.java)?.apply { id = doc.id }
                 } ?: emptyList()
                 
-                adapterInstrucciones.updateData(list)
-                layoutEmpty.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
+                allInstruccionesRaw = list
+                applyAllInstruccionesFilters()
             }
     }
 
@@ -369,7 +487,9 @@ class GestionFragment : Fragment() {
                 "remitenteId" to uid,
                 "remitenteNombre" to nombreG,
                 "destinatarioId" to despachador.id,
+                "destinatarioNombre" to (despachador.nombreCompleto),
                 "estado" to "pendiente",
+                "bloqueado" to 0,
                 "fechaCreacion" to Timestamp.now()
             )
             db.collection("instrucciones").add(instruccion).addOnSuccessListener {

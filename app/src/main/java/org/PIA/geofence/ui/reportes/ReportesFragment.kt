@@ -12,6 +12,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import org.PIA.geofence.R
 import org.PIA.geofence.data.Incidencia
+import org.PIA.geofence.data.Instruccion
 import org.PIA.geofence.data.Viaje
 import java.util.*
 
@@ -24,6 +25,7 @@ class ReportesFragment : Fragment() {
     private lateinit var tvKmTotales: TextView
     private lateinit var tvIncidencias: TextView
     private lateinit var tvChoferes: TextView
+    private lateinit var tvInstruccionesSemana: TextView
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -42,6 +44,7 @@ class ReportesFragment : Fragment() {
         tvKmTotales = view.findViewById(R.id.tvKpiKmTotales)
         tvIncidencias = view.findViewById(R.id.tvKpiIncidencias)
         tvChoferes = view.findViewById(R.id.tvKpiChoferes)
+        tvInstruccionesSemana = view.findViewById(R.id.tvKpiInstruccionesSemana)
 
         setupRecyclerView(view)
         loadKPIs()
@@ -71,7 +74,6 @@ class ReportesFragment : Fragment() {
             val viajesHoy = viajes.filter { it.fechaInicio?.toDate()?.after(hoy) == true }
 
             viajesHoy.forEach { viaje ->
-                // Asumimos que la distancia viene como "X.X km" o similar, intentamos parsear solo el número
                 val numDist = viaje.distancia.replace(Regex("[^0-9.]"), "").toDoubleOrNull() ?: 0.0
                 kmAcumuladosHoy += numDist
             }
@@ -85,6 +87,27 @@ class ReportesFragment : Fragment() {
             .whereEqualTo("rol", "chofer")
             .addSnapshotListener { snapshot, _ ->
                 tvChoferes.text = snapshot?.size()?.toString() ?: "0"
+            }
+
+        // Cargar instrucciones de la semana (últimos 7 días)
+        loadWeeklyInstructionsKPI()
+    }
+
+    private fun loadWeeklyInstructionsKPI() {
+        val calendar = Calendar.getInstance()
+        calendar.add(Calendar.DAY_OF_YEAR, -7)
+        val haceUnaSemana = calendar.time
+
+        db.collection("instrucciones")
+            .whereGreaterThanOrEqualTo("fechaCreacion", haceUnaSemana)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) return@addSnapshotListener
+
+                val list = snapshot?.toObjects(Instruccion::class.java) ?: emptyList()
+                val enviadas = list.size
+                val completadas = list.count { it.estado == "completada" }
+
+                tvInstruccionesSemana.text = "$enviadas / $completadas"
             }
     }
 
