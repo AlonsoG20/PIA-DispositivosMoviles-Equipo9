@@ -34,6 +34,23 @@ import java.util.Calendar
 
 class GestionFragment : Fragment() {
 
+    companion object {
+        const val ARG_SECTION = "target_section"
+        const val SECTION_PERSONAL = "personal"
+        const val SECTION_SOLICITUDES = "solicitudes"
+        const val SECTION_INSTRUCCIONES = "instrucciones"
+        const val SECTION_FLOTA = "flota"
+        const val SECTION_HISTORIAL = "historial"
+
+        fun newInstance(section: String): GestionFragment {
+            val fragment = GestionFragment()
+            val args = Bundle()
+            args.putString(ARG_SECTION, section)
+            fragment.arguments = args
+            return fragment
+        }
+    }
+
     private lateinit var db: FirebaseFirestore
     private lateinit var auth: FirebaseAuth
     
@@ -68,6 +85,9 @@ class GestionFragment : Fragment() {
     private var currentBlockFilter = 0 // 0: Todos, 1: Excluir bloqueados, 2: Solo bloqueados
     private var currentMonthFilter = -1 // -1: Todos, 0-11: Enero-Diciembre
     private var allInstruccionesRaw: List<Instruccion> = emptyList()
+
+    // Flag para saber si entramos directo a una sección o desde el menú
+    private var startedFromMenu = true
 
     // Listeners
     private var activeListener: ListenerRegistration? = null
@@ -104,37 +124,65 @@ class GestionFragment : Fragment() {
 
         setupMenuClicks(view)
         setupFiltrosInstrucciones()
+
+        // Manejar navegación directa si viene de reportes
+        arguments?.getString(ARG_SECTION)?.let { section ->
+            startedFromMenu = false
+            navigateToSection(section)
+        } ?: run {
+            startedFromMenu = true
+        }
     }
 
     private fun setupMenuClicks(view: View) {
         view.findViewById<View>(R.id.menuSolicitudes).setOnClickListener {
-            showSection("Solicitudes de Acceso")
-            loadSolicitudes()
+            navigateToSection(SECTION_SOLICITUDES)
         }
         view.findViewById<View>(R.id.menuInstrucciones).setOnClickListener {
-            showSection("Instrucciones")
-            layoutFiltrosInstrucciones.visibility = View.VISIBLE
-            loadInstruccionesEnviadas()
-            fabAdd.visibility = View.VISIBLE
-            fabAdd.setOnClickListener { showInstructionDialogGlobal() }
+            navigateToSection(SECTION_INSTRUCCIONES)
         }
         view.findViewById<View>(R.id.menuFlota).setOnClickListener {
-            showSection("Control de Flota")
-            loadFlota()
-            fabAdd.visibility = View.VISIBLE
-            fabAdd.setOnClickListener { showAddUnidadDialog() }
+            navigateToSection(SECTION_FLOTA)
         }
         view.findViewById<View>(R.id.menuPersonal).setOnClickListener {
-            showSection("Gestión de Personal")
-            loadPersonal()
+            navigateToSection(SECTION_PERSONAL)
         }
         view.findViewById<View>(R.id.menuHistorial).setOnClickListener {
-            showSection("Historial de Viajes")
-            rvGestionGeneric.visibility = View.GONE
-            containerHistorial.visibility = View.VISIBLE
-            childFragmentManager.beginTransaction()
-                .replace(R.id.layoutHistorialInGestion, HistorialFragment())
-                .commit()
+            navigateToSection(SECTION_HISTORIAL)
+        }
+    }
+
+    private fun navigateToSection(section: String) {
+        when (section) {
+            SECTION_SOLICITUDES -> {
+                showSection("Solicitudes de Acceso")
+                loadSolicitudes()
+            }
+            SECTION_INSTRUCCIONES -> {
+                showSection("Instrucciones")
+                layoutFiltrosInstrucciones.visibility = View.VISIBLE
+                loadInstruccionesEnviadas()
+                fabAdd.visibility = View.VISIBLE
+                fabAdd.setOnClickListener { showInstructionDialogGlobal() }
+            }
+            SECTION_FLOTA -> {
+                showSection("Control de Flota")
+                loadFlota()
+                fabAdd.visibility = View.VISIBLE
+                fabAdd.setOnClickListener { showAddUnidadDialog() }
+            }
+            SECTION_PERSONAL -> {
+                showSection("Gestión de Personal")
+                loadPersonal()
+            }
+            SECTION_HISTORIAL -> {
+                showSection("Historial de Viajes")
+                rvGestionGeneric.visibility = View.GONE
+                containerHistorial.visibility = View.VISIBLE
+                childFragmentManager.beginTransaction()
+                    .replace(R.id.layoutHistorialInGestion, HistorialFragment())
+                    .commit()
+            }
         }
     }
 
@@ -250,7 +298,9 @@ class GestionFragment : Fragment() {
     }
 
     fun onBackPressed(): Boolean {
-        if (layoutDetalle.visibility == View.VISIBLE) {
+        // Solo interceptamos si entramos desde el menú de este mismo fragmento.
+        // Si entramos directo (desde KPIs), permitimos que la pila de fragmentos regrese a Reportes.
+        if (layoutDetalle.visibility == View.VISIBLE && startedFromMenu) {
             layoutDetalle.visibility = View.GONE
             layoutMenu.visibility = View.VISIBLE
             (activity as? MainActivity)?.showBackButton(false)

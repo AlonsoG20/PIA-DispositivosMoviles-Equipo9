@@ -8,12 +8,15 @@ import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.card.MaterialCardView
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import org.PIA.geofence.R
 import org.PIA.geofence.data.Incidencia
 import org.PIA.geofence.data.Instruccion
 import org.PIA.geofence.data.Viaje
+import org.PIA.geofence.data.User
+import org.PIA.geofence.ui.gestion.GestionFragment
 import java.util.*
 
 class ReportesFragment : Fragment() {
@@ -47,6 +50,7 @@ class ReportesFragment : Fragment() {
         tvInstruccionesSemana = view.findViewById(R.id.tvKpiInstruccionesSemana)
 
         setupRecyclerView(view)
+        setupClickListeners(view)
         loadKPIs()
         loadIncidencias()
     }
@@ -56,6 +60,29 @@ class ReportesFragment : Fragment() {
         adapter = IncidenciaAdapter(emptyList())
         rv.layoutManager = LinearLayoutManager(context)
         rv.adapter = adapter
+    }
+
+    private fun setupClickListeners(view: View) {
+        // Redirecciones dinámicas a Gestión
+        view.findViewById<MaterialCardView>(R.id.cardChoferes).setOnClickListener {
+            navigateToGestion(GestionFragment.SECTION_PERSONAL)
+        }
+        
+        view.findViewById<MaterialCardView>(R.id.cardInstrucciones).setOnClickListener {
+            navigateToGestion(GestionFragment.SECTION_INSTRUCCIONES)
+        }
+
+        view.findViewById<MaterialCardView>(R.id.cardRutasHoy).setOnClickListener {
+            navigateToGestion(GestionFragment.SECTION_HISTORIAL)
+        }
+    }
+
+    private fun navigateToGestion(section: String) {
+        val fragment = GestionFragment.newInstance(section)
+        parentFragmentManager.beginTransaction()
+            .replace(R.id.fragmentContainer, fragment, R.id.nav_gestion.toString())
+            .addToBackStack(null)
+            .commit()
     }
 
     private fun loadKPIs() {
@@ -82,11 +109,15 @@ class ReportesFragment : Fragment() {
             tvKmTotales.text = String.format("%.1f", kmAcumuladosHoy)
         }
 
-        // Contar choferes activos (rol chofer)
+        // Contar choferes (Plantilla / Activos)
         db.collection("usuarios")
             .whereEqualTo("rol", "chofer")
             .addSnapshotListener { snapshot, _ ->
-                tvChoferes.text = snapshot?.size()?.toString() ?: "0"
+                val usuarios = snapshot?.toObjects(User::class.java) ?: emptyList()
+                val plantilla = usuarios.size
+                val activos = usuarios.count { it.estado == "0" }
+                
+                tvChoferes.text = "$plantilla / $activos"
             }
 
         // Cargar instrucciones de la semana (últimos 7 días)
