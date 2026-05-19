@@ -22,6 +22,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.maps.DirectionsApi
 import com.google.maps.GeoApiContext
 import com.google.maps.model.TravelMode
+import org.PIA.geofence.MainActivity
 import org.PIA.geofence.R
 import org.PIA.geofence.data.ParadaData
 import org.PIA.geofence.data.PuntoInteres
@@ -235,12 +236,24 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
         tvChoferInfo.text = "Asignando a: ${user.nombreCompleto}"
         layoutLista.visibility = View.GONE
         layoutMapa.visibility = View.VISIBLE
+        (activity as? MainActivity)?.showBackButton(true)
         unidadSeleccionada = null
         tvUnidadSeleccionada.text = "Seleccionar Unidad (Obligatorio)"
         if (::mMap.isInitialized) {
             limpiarMapa()
             cargarPuntosInteresMapa()
         }
+    }
+
+    fun onBackPressed(): Boolean {
+        if (layoutMapa.visibility == View.VISIBLE) {
+            layoutMapa.visibility = View.GONE
+            layoutLista.visibility = View.VISIBLE
+            (activity as? MainActivity)?.showBackButton(false)
+            limpiarMapa()
+            return true
+        }
+        return false
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
@@ -353,6 +366,7 @@ class RutasDespachadorFragment : Fragment(), OnMapReadyCallback {
             Toast.makeText(context, "Ruta asignada", Toast.LENGTH_SHORT).show()
             layoutMapa.visibility = View.GONE
             layoutLista.visibility = View.VISIBLE
+            (activity as? MainActivity)?.showBackButton(false)
             limpiarMapa()
         }
     }

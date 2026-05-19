@@ -7,6 +7,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.ImageView
 import android.widget.ImageButton
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.ViewCompat
@@ -61,16 +62,30 @@ class MainActivity : AppCompatActivity() {
         tvUserRole = headerLayout.findViewById(R.id.tv_user_role)
         
         btnBack.setOnClickListener {
-            // Manejar navegación hacia atrás para fragmentos anidados si es necesario
-            val currentFragment = supportFragmentManager.findFragmentById(R.id.fragmentContainer)
-            if (currentFragment is GestionFragment) {
-                if (!currentFragment.onBackPressed()) {
-                    onBackPressedDispatcher.onBackPressed()
-                }
-            } else {
-                onBackPressedDispatcher.onBackPressed()
-            }
+            onBackPressedDispatcher.onBackPressed()
         }
+
+        // Registrar callback para manejar el gesto de atrás del sistema
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                val currentFragment = supportFragmentManager.findFragmentById(R.id.fragmentContainer)
+                
+                // Manejar retroceso en GestionFragment
+                if (currentFragment is GestionFragment) {
+                    if (currentFragment.onBackPressed()) return
+                }
+                
+                // Manejar retroceso en RutasDespachadorFragment (Asignación de rutas)
+                if (currentFragment is RutasDespachadorFragment) {
+                    if (currentFragment.onBackPressed()) return
+                }
+                
+                // Si no hay nada que manejar internamente, permitimos el comportamiento por defecto (salir)
+                isEnabled = false
+                onBackPressedDispatcher.onBackPressed()
+                isEnabled = true
+            }
+        })
 
         navCuenta = navbar.findViewById(R.id.nav_cuenta)
         navRutas = navbar.findViewById(R.id.nav_rutas)
