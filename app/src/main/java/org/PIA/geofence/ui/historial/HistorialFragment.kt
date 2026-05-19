@@ -47,6 +47,7 @@ class HistorialFragment : Fragment(R.layout.fragment_historial) {
     private lateinit var etSearch: EditText
     private lateinit var tilSearch: View
     private lateinit var layoutFilters: View
+    private lateinit var chipGroupRole: ChipGroup
     private lateinit var chipGroupSort: ChipGroup
     private lateinit var btnResetFilters: View
     private lateinit var btnMoreFilters: View
@@ -58,6 +59,7 @@ class HistorialFragment : Fragment(R.layout.fragment_historial) {
     private var todosLosViajes = listOf<Viaje>()
     private var currentRole = ""
     private var currentSortMode = "recent" // "recent", "distance", "fuel"
+    private var currentRoleFilter = "all" // "all", "chofer", "despachador"
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -68,29 +70,46 @@ class HistorialFragment : Fragment(R.layout.fragment_historial) {
         etSearch = view.findViewById(R.id.etSearch)
         tilSearch = view.findViewById(R.id.tilSearch)
         layoutFilters = view.findViewById(R.id.layoutFilters)
+        chipGroupRole = view.findViewById(R.id.chipGroupRole)
         chipGroupSort = view.findViewById(R.id.chipGroupSort)
         btnResetFilters = view.findViewById(R.id.btnResetFilters)
         btnMoreFilters = view.findViewById(R.id.btnMoreFilters)
 
         setupRecyclerView()
         setupListeners()
-        setupChipStyles()
         cargarHistorial()
     }
 
     private fun setupRecyclerView() {
         adapter = ViajeAdapter(emptyList()) { viaje ->
-            if (currentRole == "gerente") {
-                mostrarDetalleYImprimir(viaje)
-            }
+            mostrarDetalleYImprimir(viaje)
         }
         rvHistorial.layoutManager = LinearLayoutManager(requireContext())
         rvHistorial.adapter = adapter
     }
 
+    private fun getDisplayEstado(estado: String): String {
+        return if (estado.equals("completada", true) || estado.equals("finalizada", true)) {
+            "Completado"
+        } else {
+            "Abandonado"
+        }
+    }
+
     private fun mostrarDetalleYImprimir(viaje: Viaje) {
         val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_detalle_viaje, null)
         
+        val displayEstado = getDisplayEstado(viaje.estado)
+        val tvEstado = dialogView.findViewById<TextView>(R.id.tvDetalleEstado)
+        tvEstado.text = displayEstado
+        if (displayEstado == "Completado") {
+            tvEstado.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#E8F5E9"))
+            tvEstado.setTextColor(Color.parseColor("#2E7D32"))
+        } else {
+            tvEstado.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#FFEBEE"))
+            tvEstado.setTextColor(Color.parseColor("#C62828"))
+        }
+
         dialogView.findViewById<TextView>(R.id.tvDetalleTitulo).text = viaje.titulo
         dialogView.findViewById<TextView>(R.id.tvDetalleChofer).text = "Chofer: ${viaje.nombreChofer}"
         dialogView.findViewById<TextView>(R.id.tvDetalleDespachador).text = "Asignado por: ${viaje.nombreDespachador}"
@@ -109,9 +128,16 @@ class HistorialFragment : Fragment(R.layout.fragment_historial) {
             .create()
 
         dialogView.findViewById<Button>(R.id.btnCerrar).setOnClickListener { dialog.dismiss() }
-        dialogView.findViewById<Button>(R.id.btnImprimir).setOnClickListener {
-            imprimirReporte(viaje)
-            dialog.dismiss()
+        
+        val btnImprimir = dialogView.findViewById<Button>(R.id.btnImprimir)
+        if (currentRole == "gerente") {
+            btnImprimir.visibility = View.VISIBLE
+            btnImprimir.setOnClickListener {
+                imprimirReporte(viaje)
+                dialog.dismiss()
+            }
+        } else {
+            btnImprimir.visibility = View.GONE
         }
 
         dialog.show()
@@ -154,14 +180,12 @@ class HistorialFragment : Fragment(R.layout.fragment_historial) {
                 val paint = Paint()
                 val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault())
 
-                // Dibujar Logo de la marca
+                // Dibujar Logo
                 try {
                     val bitmap = BitmapFactory.decodeResource(resources, R.drawable.logo_app)
                     val scaledBitmap = Bitmap.createScaledBitmap(bitmap, 80, 80, true)
                     canvas.drawBitmap(scaledBitmap, 465f, 40f, paint)
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
+                } catch (e: Exception) { e.printStackTrace() }
 
                 var y = 80f
                 paint.textSize = 24f
@@ -183,25 +207,26 @@ class HistorialFragment : Fragment(R.layout.fragment_historial) {
                 paint.isFakeBoldText = true
                 paint.textSize = 16f
                 canvas.drawText("Información General", 50f, y, paint)
-                
-                paint.strokeWidth = 1f
                 canvas.drawLine(50f, y + 5, 250f, y + 5, paint)
                 
                 y += 30f
                 paint.textSize = 14f
                 paint.isFakeBoldText = false
                 canvas.drawText("Título: ${viaje.titulo}", 60f, y, paint)
-                y += 20f
-                canvas.drawText("Estado: ${viaje.estado.uppercase()}", 60f, y, paint)
                 
+                y += 20f
+                val displayEstado = getDisplayEstado(viaje.estado)
+                paint.color = if (displayEstado == "Completado") Color.parseColor("#2E7D32") else Color.parseColor("#C62828")
+                paint.isFakeBoldText = true
+                canvas.drawText("Estado: ${displayEstado.uppercase()}", 60f, y, paint)
+                
+                paint.color = Color.BLACK
                 y += 40f
                 paint.isFakeBoldText = true
-                paint.textSize = 16f
                 canvas.drawText("Personal y Unidad", 50f, y, paint)
                 canvas.drawLine(50f, y + 5, 250f, y + 5, paint)
                 
                 y += 30f
-                paint.textSize = 14f
                 paint.isFakeBoldText = false
                 canvas.drawText("Chofer: ${viaje.nombreChofer}", 60f, y, paint)
                 y += 20f
@@ -211,12 +236,10 @@ class HistorialFragment : Fragment(R.layout.fragment_historial) {
 
                 y += 40f
                 paint.isFakeBoldText = true
-                paint.textSize = 16f
                 canvas.drawText("Métricas del Viaje", 50f, y, paint)
                 canvas.drawLine(50f, y + 5, 250f, y + 5, paint)
                 
                 y += 30f
-                paint.textSize = 14f
                 paint.isFakeBoldText = false
                 canvas.drawText("Distancia Recorrida: ${viaje.distancia}", 60f, y, paint)
                 y += 20f
@@ -228,28 +251,19 @@ class HistorialFragment : Fragment(R.layout.fragment_historial) {
 
                 y += 40f
                 paint.isFakeBoldText = true
-                paint.textSize = 16f
                 canvas.drawText("Tiempos", 50f, y, paint)
                 canvas.drawLine(50f, y + 5, 250f, y + 5, paint)
                 
                 y += 30f
-                paint.textSize = 14f
                 paint.isFakeBoldText = false
                 canvas.drawText("Inicio: ${viaje.fechaInicio?.toDate()?.let { sdf.format(it) } ?: "---"}", 60f, y, paint)
                 y += 20f
                 canvas.drawText("Fin: ${viaje.fechaFin?.toDate()?.let { sdf.format(it) } ?: "---"}", 60f, y, paint)
 
-                y = 800f
-                paint.textSize = 10f
-                paint.color = Color.GRAY
-                canvas.drawText("Documento generado automáticamente por el sistema Geofence el ${sdf.format(Date())}", 50f, y, paint)
-
                 pdfDocument.finishPage(page)
                 try {
                     pdfDocument.writeTo(FileOutputStream(destination.fileDescriptor))
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                } finally {
+                } catch (e: Exception) { e.printStackTrace() } finally {
                     pdfDocument.close()
                 }
                 callback.onWriteFinished(arrayOf(PageRange.ALL_PAGES))
@@ -266,35 +280,37 @@ class HistorialFragment : Fragment(R.layout.fragment_historial) {
             override fun afterTextChanged(s: Editable?) {}
         })
 
-        chipGroupSort.setOnCheckedStateChangeListener { group, checkedIds ->
+        chipGroupRole.setOnCheckedStateChangeListener { _, checkedIds ->
             val checkedId = checkedIds.firstOrNull()
-            when (checkedId) {
-                R.id.chipRecent -> currentSortMode = "recent"
-                R.id.chipDistance -> currentSortMode = "distance"
+            currentRoleFilter = when (checkedId) {
+                R.id.chipRoleChofer -> "chofer"
+                R.id.chipRoleDespachador -> "despachador"
+                else -> "all"
+            }
+            actualizarHintBusqueda()
+            aplicarFiltrosYOrden()
+        }
+
+        chipGroupSort.setOnCheckedStateChangeListener { _, checkedIds ->
+            val checkedId = checkedIds.firstOrNull()
+            currentSortMode = when (checkedId) {
+                R.id.chipDistance -> "distance"
+                else -> "recent"
             }
             aplicarFiltrosYOrden()
         }
 
         btnMoreFilters.setOnClickListener { showMoreFiltersMenu() }
-        
         btnResetFilters.setOnClickListener { resetFilters() }
     }
 
-    private fun setupChipStyles() {
-        val states = arrayOf(
-            intArrayOf(android.R.attr.state_checked),
-            intArrayOf(-android.R.attr.state_checked)
-        )
-        
-        // Azul transparente cuando está seleccionado (#332196F3), Blanco cuando no (#FFFFFF)
-        val colors = intArrayOf(
-            Color.parseColor("#332196F3"),
-            Color.WHITE
-        )
-        val colorStateList = ColorStateList(states, colors)
-
-        view?.findViewById<Chip>(R.id.chipRecent)?.chipBackgroundColor = colorStateList
-        view?.findViewById<Chip>(R.id.chipDistance)?.chipBackgroundColor = colorStateList
+    private fun actualizarHintBusqueda() {
+        val hint = when (currentRoleFilter) {
+            "chofer" -> "Buscar por nombre de chofer..."
+            "despachador" -> "Buscar por nombre de despachador..."
+            else -> "Buscar por chofer, unidad o despachador..."
+        }
+        etSearch.hint = hint
     }
 
     private fun showMoreFiltersMenu() {
@@ -305,18 +321,9 @@ class HistorialFragment : Fragment(R.layout.fragment_historial) {
 
         popup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
-                1 -> {
-                    currentSortMode = "recent"
-                    chipGroupSort.check(R.id.chipRecent)
-                }
-                2 -> {
-                    currentSortMode = "distance"
-                    chipGroupSort.check(R.id.chipDistance)
-                }
-                3 -> {
-                    currentSortMode = "fuel"
-                    chipGroupSort.clearCheck() 
-                }
+                1 -> { currentSortMode = "recent"; chipGroupSort.check(R.id.chipRecent) }
+                2 -> { currentSortMode = "distance"; chipGroupSort.check(R.id.chipDistance) }
+                3 -> { currentSortMode = "fuel"; chipGroupSort.clearCheck() }
             }
             aplicarFiltrosYOrden()
             true
@@ -327,20 +334,25 @@ class HistorialFragment : Fragment(R.layout.fragment_historial) {
     private fun resetFilters() {
         etSearch.setText("")
         currentSortMode = "recent"
+        currentRoleFilter = "all"
         chipGroupSort.check(R.id.chipRecent)
+        chipGroupRole.check(R.id.chipRoleAll)
         aplicarFiltrosYOrden()
     }
 
     private fun cargarHistorial() {
         val currentUserId = auth.currentUser?.uid ?: return
-
         db.collection("usuarios").document(currentUserId).get().addOnSuccessListener { userDoc ->
             currentRole = userDoc.getString("rol") ?: ""
             
             if (currentRole == "chofer") {
                 tilSearch.visibility = View.GONE
+                layoutFilters.visibility = View.GONE
+                chipGroupRole.visibility = View.GONE
             } else {
                 tilSearch.visibility = View.VISIBLE
+                layoutFilters.visibility = View.VISIBLE
+                chipGroupRole.visibility = View.VISIBLE
             }
 
             val collectionRef = db.collection("viajes")
@@ -349,7 +361,6 @@ class HistorialFragment : Fragment(R.layout.fragment_historial) {
                 "despachador" -> collectionRef.whereEqualTo("despachadorId", currentUserId)
                 else -> collectionRef.whereEqualTo("choferId", currentUserId)
             }
-
             query.addSnapshotListener { value, error ->
                 if (error != null) return@addSnapshotListener
                 todosLosViajes = value?.toObjects(Viaje::class.java) ?: emptyList()
@@ -359,22 +370,29 @@ class HistorialFragment : Fragment(R.layout.fragment_historial) {
     }
 
     private fun aplicarFiltrosYOrden() {
-        val queryBusqueda = etSearch.text.toString().lowercase(Locale.getDefault())
-        
-        // Determinar si hay filtros activos para mostrar el botón de reset (X)
-        val searchActive = queryBusqueda.isNotEmpty()
+        val query = etSearch.text.toString().lowercase(Locale.getDefault())
+        val searchActive = query.isNotEmpty()
         val sortActive = currentSortMode != "recent"
-        btnResetFilters.visibility = if (searchActive || sortActive) View.VISIBLE else View.GONE
+        val roleActive = currentRoleFilter != "all"
+        btnResetFilters.visibility = if (searchActive || sortActive || roleActive) View.VISIBLE else View.GONE
 
-        var filtrados = if (!searchActive || currentRole == "chofer") {
-            todosLosViajes
-        } else {
-            todosLosViajes.filter { viaje ->
-                viaje.nombreChofer.lowercase().contains(queryBusqueda) ||
-                viaje.nombreDespachador.lowercase().contains(queryBusqueda) ||
-                viaje.placaUnidad.lowercase().contains(queryBusqueda) ||
-                viaje.numeroEconomico.lowercase().contains(queryBusqueda) ||
-                viaje.titulo.lowercase().contains(queryBusqueda)
+        var filtrados = todosLosViajes
+
+        if (searchActive && currentRole != "chofer") {
+            filtrados = filtrados.filter { viaje ->
+                val displayEstado = getDisplayEstado(viaje.estado).lowercase()
+                when (currentRoleFilter) {
+                    "chofer" -> viaje.nombreChofer.lowercase().contains(query) || displayEstado.contains(query)
+                    "despachador" -> viaje.nombreDespachador.lowercase().contains(query) || displayEstado.contains(query)
+                    else -> {
+                        viaje.nombreChofer.lowercase().contains(query) ||
+                        viaje.nombreDespachador.lowercase().contains(query) ||
+                        viaje.placaUnidad.lowercase().contains(query) ||
+                        viaje.numeroEconomico.lowercase().contains(query) ||
+                        viaje.titulo.lowercase().contains(query) ||
+                        displayEstado.contains(query)
+                    }
+                }
             }
         }
 
@@ -390,11 +408,7 @@ class HistorialFragment : Fragment(R.layout.fragment_historial) {
 
     private fun actualizarUI(lista: List<Viaje>) {
         val conteoHoy = contarHoy(todosLosViajes)
-        when (currentRole) {
-            "despachador" -> tvContadorHoy.text = "Viajes asignados hoy: $conteoHoy"
-            "gerente" -> tvContadorHoy.text = "Viajes totales hoy: $conteoHoy"
-            else -> tvContadorHoy.text = "Viajes realizados hoy: $conteoHoy"
-        }
+        tvContadorHoy.text = "Viajes realizados hoy: $conteoHoy"
         tvEmpty.visibility = if (lista.isEmpty()) View.VISIBLE else View.GONE
     }
 
@@ -402,6 +416,9 @@ class HistorialFragment : Fragment(R.layout.fragment_historial) {
         val hoy = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
         }.time
-        return lista.count { it.fechaInicio?.toDate()?.let { f -> !f.before(hoy) } == true && it.estado.equals("completada", true) }
+        return lista.count { 
+            it.fechaInicio?.toDate()?.let { f -> !f.before(hoy) } == true && 
+            getDisplayEstado(it.estado) == "Completado" 
+        }
     }
 }

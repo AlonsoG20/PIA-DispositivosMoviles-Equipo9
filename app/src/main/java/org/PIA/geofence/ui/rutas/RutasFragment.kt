@@ -527,12 +527,51 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
         }
     }
 
+    private fun calcularDistanciaRecorrida(): Double {
+        val points = viewModel.puntosCaminoSeleccionado
+        if (points.isEmpty()) return 0.0
+        
+        var totalMeters = 0.0
+        val lastIdx = viewModel.ultimoIndiceRecorrido
+        
+        for (i in 0 until lastIdx) {
+            val results = FloatArray(1)
+            android.location.Location.distanceBetween(
+                points[i].latitude, points[i].longitude,
+                points[i+1].latitude, points[i+1].longitude,
+                results
+            )
+            totalMeters += results[0]
+        }
+
+        // Estimación subjetiva hasta la posición actual del marcador
+        markerVehiculo?.position?.let { currentPos ->
+            if (lastIdx < points.size) {
+                val results = FloatArray(1)
+                android.location.Location.distanceBetween(
+                    points[lastIdx].latitude, points[lastIdx].longitude,
+                    currentPos.latitude, currentPos.longitude,
+                    results
+                )
+                totalMeters += results[0]
+            }
+        }
+
+        return totalMeters / 1000.0
+    }
+
     private fun finalizarRuta(guardar: Boolean) {
         val userId = auth.currentUser?.uid ?: return
         val rutaId = viewModel.rutaAsignada?.id ?: return
         viewModel.rutaIniciada = false
         animatorVehiculo?.cancel()
         
+        val kmRecorridos = if (guardar) {
+            if (viewModel.esRutaRapidaSeleccionada) viewModel.kmRutaRapida else viewModel.kmRutaAlterna
+        } else {
+            calcularDistanciaRecorrida()
+        }
+
         val currentPos = markerVehiculo?.position
         poliLineaRapida?.remove()
         poliLineaAlterna?.remove()
@@ -551,27 +590,25 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
 
         markersParadas.forEachIndexed { i, m -> if (i >= viewModel.paradasCompletadas) m.alpha = 0.4f }
         
-        if (guardar && viewModel.rutaAsignada != null) {
-            actualizarHistorialFinal(rutaId)
-            db.collection("usuarios").document(userId).update("estado", "0")
-            viewModel.rutaAsignada?.unidadId?.let { uid ->
-                db.collection("unidades").document(uid).update("estado", "Disponible")
-            }
+        actualizarHistorialFinal(rutaId, guardar, kmRecorridos)
+        
+        db.collection("usuarios").document(userId).update("estado", "0")
+        viewModel.rutaAsignada?.unidadId?.let { uid ->
+            db.collection("unidades").document(uid).update("estado", "Disponible")
+        }
+
+        if (guardar) {
             tvEstadoRuta.text = "Viaje Finalizado"
         } else {
             tvEstadoRuta.text = "Ruta Interrumpida"
-            db.collection("rutas").document(rutaId).update("estado", "cancelada")
-            db.collection("usuarios").document(userId).update("estado", "0")
-            viewModel.rutaAsignada?.unidadId?.let { uid ->
-                db.collection("unidades").document(uid).update("estado", "Disponible")
-            }
         }
+        
         btnIniciarRuta.isEnabled = false
         btnFinalizarRuta.visibility = View.VISIBLE
         btnFinalizarRuta.text = "Salir"
     }
 
-    private fun actualizarHistorialFinal(rutaId: String) {
+    private fun actualizarHistorialFinal(rutaId: String, completado: Boolean, km: Double) {
         val unidadId = viewModel.rutaAsignada?.unidadId ?: return
         val choferNombre = viewModel.rutaAsignada?.choferNombre ?: "Desconocido"
         val numeroEco = viewModel.rutaAsignada?.unidadEco ?: "S/N"
@@ -581,14 +618,14 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
             val consumoBase = unidad?.consumoPorKm ?: 0.12
             val precioBase = 15.0 
             
-            val km = if (viewModel.esRutaRapidaSeleccionada) viewModel.kmRutaRapida else viewModel.kmRutaAlterna
             val combustibleDouble = km * consumoBase
             val costoTotal = km * precioBase
             
             val gasolinaRestante = (unidad?.gasolinaActual ?: 0.0) - combustibleDouble
+            val estadoFinal = if (completado) "completada" else "abandonada"
 
             val updates = hashMapOf(
-                "estado" to "completada",
+                "estado" to estadoFinal,
                 "distancia" to "%.1f km".format(km),
                 "cantidadParadas" to viewModel.paradasCompletadas,
                 "costo" to costoTotal.toInt().toString(),
@@ -596,14 +633,14 @@ class RutasFragment : Fragment(R.layout.fragment_rutas), OnMapReadyCallback {
                 "fechaFin" to com.google.firebase.Timestamp.now()
             )
             
-            db.collection("rutas").document(rutaId).update("estado", "completada", "completado", true)
+            db.collection("rutas").document(rutaId).update("estado", estadoFinal, "completado", completado)
             db.collection("viajes").document(rutaId).update(updates as Map<String, Any>)
             
             db.collection("unidades").document(unidadId).update("gasolinaActual", gasolinaRestante)
 
             val capacidadMaxima = unidad?.capacidadMaxima ?: 100.0
             if (gasolinaRestante < (capacidadMaxima * 0.25)) {
-                val msgDetalle = "Fin de ruta: $choferNombre - Unidad $numeroEco - %.2f L restantes (bajo 25%%).".format(gasolinaRestante)
+                val msgDetalle = "Fin de ruta ($estadoFinal): $choferNombre - Unidad $numeroEco - %.2f L restantes (bajo 25%%).".format(gasolinaRestante)
                 
                 val incidencia = hashMapOf(
                     "chofer" to choferNombre,

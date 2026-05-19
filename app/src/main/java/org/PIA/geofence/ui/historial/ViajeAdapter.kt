@@ -1,5 +1,7 @@
 package org.PIA.geofence.ui.historial
 
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -17,6 +19,7 @@ class ViajeAdapter(
 
     class ViajeViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvTitulo: TextView = view.findViewById(R.id.tvTitulo)
+        val tvEstado: TextView = view.findViewById(R.id.tvEstado)
         val tvDistancia: TextView = view.findViewById(R.id.tvDistancia)
         val tvFecha: TextView = view.findViewById(R.id.tvFecha)
         val tvFechaFin: TextView = view.findViewById(R.id.tvFechaFin)
@@ -40,10 +43,26 @@ class ViajeAdapter(
         val unidadText = if (viaje.numeroEconomico.isNotEmpty()) "U-${viaje.numeroEconomico}" else viaje.placaUnidad.ifEmpty { "---" }
         holder.tvDetalleChofer.text = "Unidad: $unidadText | Chofer: ${viaje.nombreChofer.ifEmpty { "---" }}"
 
+        // Lógica de estado unificado: Completado o Abandonado
+        val displayEstado = if (viaje.estado.equals("completada", true) || viaje.estado.equals("finalizada", true)) {
+            "Completado"
+        } else {
+            "Abandonado"
+        }
+        
+        holder.tvEstado.text = displayEstado
+        if (displayEstado == "Completado") {
+            holder.tvEstado.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#E8F5E9"))
+            holder.tvEstado.setTextColor(Color.parseColor("#2E7D32"))
+        } else {
+            holder.tvEstado.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#FFEBEE"))
+            holder.tvEstado.setTextColor(Color.parseColor("#C62828"))
+        }
+
         val sdf = SimpleDateFormat("dd/MM/yy HH:mm", Locale.getDefault())
         
         holder.tvFecha.text = "Inicio: " + (viaje.fechaInicio?.toDate()?.let { sdf.format(it) } ?: "--/--/--")
-        holder.tvFechaFin.text = "Fin: " + (viaje.fechaFin?.toDate()?.let { sdf.format(it) } ?: "En curso")
+        holder.tvFechaFin.text = "Fin: " + (viaje.fechaFin?.toDate()?.let { sdf.format(it) } ?: "---")
 
         holder.itemView.setOnClickListener { onItemClick(viaje) }
     }
