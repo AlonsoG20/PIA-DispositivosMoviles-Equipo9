@@ -10,7 +10,9 @@ data class Instruccion(
     val remitenteId: String = "",
     val remitenteNombre: String = "",
     val destinatarioId: String = "",
-    val estado: String = "pendiente", // "pendiente", "completada"
+    val estado: String = "pendiente", // "pendiente", "guardada", "completada", "descartada"
     val fechaCreacion: Timestamp? = null,
-    val fechaCompletado: Timestamp? = null
+    val fechaCompletado: Timestamp? = null,
+    val primeraModificacion: Timestamp? = null,
+    val bloqueado: Int = 0 // 0 = no, 1 = si
 )

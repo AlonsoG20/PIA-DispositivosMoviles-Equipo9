@@ -25,12 +25,27 @@
             android:textColor="@color/gray_hint"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintEnd_toStartOf="@+id/btnDeleteInstruccion" />
+            app:layout_constraintEnd_toStartOf="@+id/tvInstruccionEstado" />
+
+        <TextView
+            android:id="@+id/tvInstruccionEstado"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="2dp"
+            android:background="@drawable/bg_status_badge"
+            android:text="PENDIENTE"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/white"
+            app:layout_constraintEnd_toStartOf="@+id/btnDeleteInstruccion"
+            app:layout_constraintTop_toTopOf="parent" />
 
         <ImageButton
             android:id="@+id/btnDeleteInstruccion"
             android:layout_width="14dp"
             android:layout_height="14dp"
+            android:layout_marginStart="8dp"
             android:padding="0dp"
             android:scaleType="fitCenter"
             android:background="@android:color/transparent"
@@ -65,29 +80,41 @@
             app:layout_constraintTop_toBottomOf="@id/tvInstruccionMensaje" />
 
         <LinearLayout
+            android:id="@+id/layoutAcciones"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:gravity="end|center_vertical"
+            android:layout_marginTop="4dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@id/tvInstruccionFecha"
             app:layout_constraintBottom_toBottomOf="parent">
 
-            <TextView
-                android:id="@+id/tvInstruccionEstado"
+            <Button
+                android:id="@+id/btnGuardarInstruccion"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:text=""
+                android:text="Guardar"
                 android:textSize="11sp"
-                android:textStyle="bold" />
+                android:textColor="@color/teal_primary"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/btnDescartarInstruccion"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Descartar"
+                android:textSize="11sp"
+                android:textColor="@color/teal_primary"
+                android:visibility="gone" />
 
             <Button
                 android:id="@+id/btnCompletarInstruccion"
                 style="@style/Widget.MaterialComponents.Button.TextButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Hecho"
+                android:text="Completar"
                 android:textSize="11sp"
                 android:textColor="@color/teal_primary"
                 android:visibility="gone" />

@@ -29,6 +29,7 @@ import org.PIA.geofence.data.PuntoInteres
 import org.PIA.geofence.data.Unidad
 import org.PIA.geofence.data.User
 import org.PIA.geofence.ui.cuenta.UserViewModel
+import java.util.Calendar
 
 class ControlDespachadorFragment : Fragment() {
 
@@ -51,8 +52,15 @@ class ControlDespachadorFragment : Fragment() {
     private lateinit var btnFilterOcupado: MaterialButton
     private lateinit var btnFilterInactivo: MaterialButton
 
+    private lateinit var btnInstFilterPendiente: MaterialButton
+    private lateinit var btnInstFilterGuardada: MaterialButton
+    private lateinit var btnInstFilterCompletada: MaterialButton
+    private lateinit var btnInstFilterDescartada: MaterialButton
+
     private var allChoferes: List<User> = emptyList()
+    private var allInstrucciones: List<Instruccion> = emptyList()
     private var currentFilter: String = "ALL" // "ALL", "0", "1", "2"
+    private var currentInstFilter: String = "pendiente"
     private var userRole: String = ""
 
     private var unidadesListener: ListenerRegistration? = null
@@ -86,6 +94,11 @@ class ControlDespachadorFragment : Fragment() {
         btnFilterOcupado = view.findViewById(R.id.btnFilterOcupado)
         btnFilterInactivo = view.findViewById(R.id.btnFilterInactivo)
 
+        btnInstFilterPendiente = view.findViewById(R.id.btnInstFilterPendiente)
+        btnInstFilterGuardada = view.findViewById(R.id.btnInstFilterGuardada)
+        btnInstFilterCompletada = view.findViewById(R.id.btnInstFilterCompletada)
+        btnInstFilterDescartada = view.findViewById(R.id.btnInstFilterDescartada)
+
         tvEmptyFlota = view.findViewById(R.id.tvEmptyFlota)
         tvEmptyChoferes = view.findViewById(R.id.tvEmptyChoferes)
         tvEmptyPOI = view.findViewById(R.id.tvEmptyPOI)
@@ -107,9 +120,9 @@ class ControlDespachadorFragment : Fragment() {
         rvPOI.layoutManager = LinearLayoutManager(context)
         rvPOI.adapter = adapterPOI
 
-        adapterInstrucciones = InstruccionAdapter(emptyList()) { instruccion ->
-            marcarInstruccionCompletada(instruccion)
-        }
+        adapterInstrucciones = InstruccionAdapter(emptyList(), { instruccion, nuevoEstado ->
+            realizarAccionInstruccion(instruccion, nuevoEstado)
+        }, null)
         rvInstrucciones.layoutManager = LinearLayoutManager(context)
         rvInstrucciones.adapter = adapterInstrucciones
 
@@ -126,7 +139,13 @@ class ControlDespachadorFragment : Fragment() {
         btnFilterOcupado.setOnClickListener { updateFilter("1") }
         btnFilterInactivo.setOnClickListener { updateFilter("2") }
 
+        btnInstFilterPendiente.setOnClickListener { updateInstFilter("pendiente") }
+        btnInstFilterGuardada.setOnClickListener { updateInstFilter("guardada") }
+        btnInstFilterCompletada.setOnClickListener { updateInstFilter("completada") }
+        btnInstFilterDescartada.setOnClickListener { updateInstFilter("descartada") }
+
         setupUserObserver()
+        updateInstFilterVisuals()
         loadData()
     }
 
@@ -139,25 +158,38 @@ class ControlDespachadorFragment : Fragment() {
                 } else {
                     btnFilterInactivo.visibility = View.GONE
                 }
-                applyFilter() // Re-aplicar el filtro de choferes basado en el nuevo rol
+                applyFilter() 
             }
         }
         
-        // Asegurarse de que los datos estén cargados (aunque MainActivity lo hace)
         val uid = auth.currentUser?.uid
         if (uid != null) {
             userViewModel.loadUser(uid)
         }
     }
 
-    private fun marcarInstruccionCompletada(instruccion: Instruccion) {
+    private fun realizarAccionInstruccion(instruccion: Instruccion, nuevoEstado: String) {
+        if (instruccion.bloqueado == 1) {
+            Toast.makeText(context, "Esta instrucción está bloqueada y no se puede modificar", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val updates = mutableMapOf<String, Any>(
+            "estado" to nuevoEstado
+        )
+
+        if (instruccion.estado == "pendiente") {
+            updates["primeraModificacion"] = Timestamp.now()
+        }
+
+        if (nuevoEstado == "completada") {
+            updates["fechaCompletado"] = Timestamp.now()
+        }
+
         db.collection("instrucciones").document(instruccion.id)
-            .update(
-                "estado", "completada",
-                "fechaCompletado", Timestamp.now()
-            )
+            .update(updates)
             .addOnSuccessListener {
-                if (isAdded) Toast.makeText(context, "Instrucción marcada como hecha", Toast.LENGTH_SHORT).show()
+                if (isAdded) Toast.makeText(context, "Estado actualizado: $nuevoEstado", Toast.LENGTH_SHORT).show()
             }
     }
 
@@ -200,6 +232,12 @@ class ControlDespachadorFragment : Fragment() {
         applyFilter()
     }
 
+    private fun updateInstFilter(filter: String) {
+        currentInstFilter = filter
+        updateInstFilterVisuals()
+        applyInstFilter()
+    }
+
     private fun updateFilterVisuals() {
         val primaryColor = ContextCompat.getColor(requireContext(), R.color.teal_primary)
         val whiteColor = ContextCompat.getColor(requireContext(), android.R.color.white)
@@ -220,6 +258,26 @@ class ControlDespachadorFragment : Fragment() {
         selectedBtn.setTextColor(whiteColor)
     }
 
+    private fun updateInstFilterVisuals() {
+        val primaryColor = ContextCompat.getColor(requireContext(), R.color.teal_primary)
+        val whiteColor = ContextCompat.getColor(requireContext(), android.R.color.white)
+
+        listOf(btnInstFilterPendiente, btnInstFilterGuardada, btnInstFilterCompletada, btnInstFilterDescartada).forEach { btn ->
+            btn.setBackgroundColor(whiteColor)
+            btn.setTextColor(primaryColor)
+        }
+
+        val selectedBtn = when (currentInstFilter) {
+            "pendiente" -> btnInstFilterPendiente
+            "guardada" -> btnInstFilterGuardada
+            "completada" -> btnInstFilterCompletada
+            "descartada" -> btnInstFilterDescartada
+            else -> btnInstFilterPendiente
+        }
+        selectedBtn.setBackgroundColor(primaryColor)
+        selectedBtn.setTextColor(whiteColor)
+    }
+
     private fun applyFilter() {
         val filteredList = when (currentFilter) {
             "ALL" -> allChoferes.filter { if (userRole != "gerente") it.estado != "2" else true }
@@ -230,6 +288,12 @@ class ControlDespachadorFragment : Fragment() {
         }
         adapterChoferes.updateChoferes(filteredList)
         tvEmptyChoferes.visibility = if (filteredList.isEmpty()) View.VISIBLE else View.GONE
+    }
+
+    private fun applyInstFilter() {
+        val filteredList = allInstrucciones.filter { it.estado == currentInstFilter }
+        adapterInstrucciones.updateData(filteredList)
+        tvEmptyInstrucciones.visibility = if (filteredList.isEmpty()) View.VISIBLE else View.GONE
     }
 
     private fun deletePoi(poi: PuntoInteres) {
@@ -281,7 +345,7 @@ class ControlDespachadorFragment : Fragment() {
                 "modelo" to modelo,
                 "estado" to "Disponible",
                 "conductorAsignado" to "",
-                "gasolinaActual" to capacidad, // Inicia lleno
+                "gasolinaActual" to capacidad,
                 "capacidadMaxima" to capacidad,
                 "consumoPorKm" to consumo,
                 "ultimaActualizacion" to Timestamp.now()
@@ -343,9 +407,58 @@ class ControlDespachadorFragment : Fragment() {
                 val list = snapshot?.documents?.mapNotNull { doc ->
                     doc.toObject(Instruccion::class.java)?.apply { id = doc.id }
                 } ?: emptyList()
-                adapterInstrucciones.updateData(list)
-                tvEmptyInstrucciones.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
+                
+                checkAndProcessInstrucciones(list)
             }
+    }
+
+    private fun checkAndProcessInstrucciones(list: List<Instruccion>) {
+        val now = Calendar.getInstance()
+        val modifiedList = list.toMutableList()
+        var hasChanges = false
+
+        for (i in modifiedList.indices) {
+            val inst = modifiedList[i]
+            if (inst.bloqueado == 1) continue
+
+            // 1. Pendientes > 24h -> descartada, bloqueado = 1
+            if (inst.estado == "pendiente" && inst.fechaCreacion != null) {
+                val cal = Calendar.getInstance()
+                cal.time = inst.fechaCreacion.toDate()
+                cal.add(Calendar.HOUR, 24)
+                if (now.after(cal)) {
+                    actualizarInstruccionExpirada(inst.id, "descartada")
+                    modifiedList[i] = inst.copy(estado = "descartada", bloqueado = 1)
+                    hasChanges = true
+                    continue
+                }
+            }
+
+            // 2. Modificada > 24h -> bloqueado = 1
+            if (inst.primeraModificacion != null) {
+                val cal = Calendar.getInstance()
+                cal.time = inst.primeraModificacion.toDate()
+                cal.add(Calendar.HOUR, 24)
+                if (now.after(cal)) {
+                    bloquearInstruccion(inst.id)
+                    modifiedList[i] = inst.copy(bloqueado = 1)
+                    hasChanges = true
+                }
+            }
+        }
+
+        allInstrucciones = modifiedList
+        applyInstFilter()
+    }
+
+    private fun actualizarInstruccionExpirada(id: String, nuevoEstado: String) {
+        db.collection("instrucciones").document(id)
+            .update("estado", nuevoEstado, "bloqueado", 1)
+    }
+
+    private fun bloquearInstruccion(id: String) {
+        db.collection("instrucciones").document(id)
+            .update("bloqueado", 1)
     }
 
     override fun onDestroyView() {
