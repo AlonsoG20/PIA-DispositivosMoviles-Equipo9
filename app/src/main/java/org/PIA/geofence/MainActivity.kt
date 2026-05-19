@@ -8,6 +8,7 @@ import android.widget.TextView
 import android.widget.ImageView
 import android.widget.ImageButton
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.ViewCompat
@@ -23,6 +24,7 @@ import org.PIA.geofence.ui.rutas.RutasDespachadorFragment
 import org.PIA.geofence.ui.gestion.GestionFragment
 import org.PIA.geofence.ui.reportes.ReportesFragment
 import org.PIA.geofence.ui.gestion.ControlDespachadorFragment
+import org.PIA.geofence.ui.cuenta.UserViewModel
 
 
 class MainActivity : AppCompatActivity() {
@@ -42,6 +44,7 @@ class MainActivity : AppCompatActivity() {
 
     private val auth = FirebaseAuth.getInstance()
     private val db = FirebaseFirestore.getInstance()
+    private val userViewModel: UserViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -93,56 +96,75 @@ class MainActivity : AppCompatActivity() {
         navGestion = navbar.findViewById(R.id.nav_gestion)
         navReportes = navbar.findViewById(R.id.nav_reportes)
 
+        observeUser()
         checkUserRole()
 
         navCuenta.setOnClickListener { loadFragment(CuentaFragment(), it.id) }
         navHistorial.setOnClickListener { loadFragment(HistorialFragment(), it.id) }
         navRutas.setOnClickListener {
-            val userId = auth.currentUser?.uid ?: return@setOnClickListener
-            db.collection("usuarios").document(userId).get().addOnSuccessListener { doc ->
-                val rol = doc.getString("rol")
-                if (rol == "despachador") {
+            val user = userViewModel.userData.value
+            if (user != null) {
+                if (user.rol == "despachador") {
                     loadFragment(RutasDespachadorFragment(), it.id)
                 } else {
                     loadFragment(RutasFragment(), it.id)
                 }
+            } else {
+                // Fallback if not loaded
+                val userId = auth.currentUser?.uid ?: return@setOnClickListener
+                db.collection("usuarios").document(userId).get().addOnSuccessListener { doc ->
+                    val rol = doc.getString("rol")
+                    if (rol == "despachador") {
+                        loadFragment(RutasDespachadorFragment(), it.id)
+                    } else {
+                        loadFragment(RutasFragment(), it.id)
+                    }
+                }
             }
         }
         navGestion.setOnClickListener { 
-            val userId = auth.currentUser?.uid ?: return@setOnClickListener
-            db.collection("usuarios").document(userId).get().addOnSuccessListener { doc ->
-                val rol = doc.getString("rol")
-                if (rol == "despachador") {
+            val user = userViewModel.userData.value
+            if (user != null) {
+                if (user.rol == "despachador") {
                     loadFragment(ControlDespachadorFragment(), it.id)
                 } else {
                     loadFragment(GestionFragment(), it.id)
+                }
+            } else {
+                val userId = auth.currentUser?.uid ?: return@setOnClickListener
+                db.collection("usuarios").document(userId).get().addOnSuccessListener { doc ->
+                    val rol = doc.getString("rol")
+                    if (rol == "despachador") {
+                        loadFragment(ControlDespachadorFragment(), it.id)
+                    } else {
+                        loadFragment(GestionFragment(), it.id)
+                    }
                 }
             }
         }
         navReportes.setOnClickListener { loadFragment(ReportesFragment(), it.id) }
     }
 
-    private fun checkUserRole() {
-        val userId = auth.currentUser?.uid ?: return
-
-        db.collection("usuarios").document(userId).get()
-            .addOnSuccessListener { document ->
-                if (document.exists()) {
-                    val rol = document.getString("rol") ?: "sinRol"
-                    val nombre = document.getString("nombre") ?: ""
-                    val apellidos = document.getString("apellidos") ?: ""
-                    
-                    // Actualizar información en el header
-                    tvUserName.text = if (nombre.isNotEmpty()) "$nombre $apellidos" else "Usuario"
-                    tvUserRole.text = rol.replaceFirstChar { it.uppercase() }
-
-                    setupUIByRole(rol)
-                }
+    private fun observeUser() {
+        userViewModel.userData.observe(this) { user ->
+            if (user != null) {
+                tvUserName.text = user.nombreCompleto
+                tvUserRole.text = user.rol?.replaceFirstChar { it.uppercase() } ?: "Usuario"
+                setupUIByRole(user.rol ?: "sinRol")
             }
-            .addOnFailureListener {
+        }
+        
+        userViewModel.error.observe(this) { error ->
+            if (error != null) {
                 navbar.visibility = View.GONE
                 loadFragment(SinRolFragment())
             }
+        }
+    }
+
+    private fun checkUserRole() {
+        val userId = auth.currentUser?.uid ?: return
+        userViewModel.loadUser(userId)
     }
 
     private fun setupUIByRole(rol: String) {
@@ -165,7 +187,9 @@ class MainActivity : AppCompatActivity() {
                 navGestion.visibility = View.VISIBLE
                 navHistorial.visibility = View.GONE // SE QUITA LA PESTAÑA PARA MOVERLA DENTRO DE GESTIÓN
                 navReportes.visibility = View.VISIBLE
-                loadFragment(GestionFragment(), R.id.nav_gestion)
+                if (supportFragmentManager.findFragmentById(R.id.fragmentContainer) == null) {
+                    loadFragment(GestionFragment(), R.id.nav_gestion)
+                }
             }
             "despachador" -> {
                 headerLayout.setBackgroundColor(Color.parseColor("#FAB24B"))
@@ -175,14 +199,18 @@ class MainActivity : AppCompatActivity() {
                 navGestion.visibility = View.VISIBLE
                 navRutas.visibility = View.VISIBLE
                 navHistorial.visibility = View.VISIBLE
-                loadFragment(ControlDespachadorFragment(), R.id.nav_gestion)
+                if (supportFragmentManager.findFragmentById(R.id.fragmentContainer) == null) {
+                    loadFragment(ControlDespachadorFragment(), R.id.nav_gestion)
+                }
             }
             "chofer" -> {
                 headerLayout.setBackgroundColor(Color.parseColor("#789D9C"))
                 
                 navRutas.visibility = View.VISIBLE
                 navHistorial.visibility = View.VISIBLE
-                loadFragment(RutasFragment(), R.id.nav_rutas)
+                if (supportFragmentManager.findFragmentById(R.id.fragmentContainer) == null) {
+                    loadFragment(RutasFragment(), R.id.nav_rutas)
+                }
             }
             else -> {
                 headerLayout.setBackgroundColor(Color.parseColor("#789D9C"))

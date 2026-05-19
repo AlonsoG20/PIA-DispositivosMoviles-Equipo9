@@ -12,6 +12,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
@@ -27,11 +28,14 @@ import org.PIA.geofence.data.Instruccion
 import org.PIA.geofence.data.PuntoInteres
 import org.PIA.geofence.data.Unidad
 import org.PIA.geofence.data.User
+import org.PIA.geofence.ui.cuenta.UserViewModel
 
 class ControlDespachadorFragment : Fragment() {
 
     private lateinit var db: FirebaseFirestore
     private lateinit var auth: FirebaseAuth
+    private val userViewModel: UserViewModel by activityViewModels()
+
     private lateinit var adapterUnidades: UnidadAdapter
     private lateinit var adapterChoferes: ChoferAdapter
     private lateinit var adapterPOI: PoiAdapter
@@ -122,19 +126,27 @@ class ControlDespachadorFragment : Fragment() {
         btnFilterOcupado.setOnClickListener { updateFilter("1") }
         btnFilterInactivo.setOnClickListener { updateFilter("2") }
 
-        checkUserRole()
+        setupUserObserver()
         loadData()
     }
 
-    private fun checkUserRole() {
-        val uid = auth.currentUser?.uid ?: return
-        db.collection("usuarios").document(uid).get().addOnSuccessListener { doc ->
-            userRole = doc.getString("rol") ?: ""
-            if (userRole == "gerente") {
-                btnFilterInactivo.visibility = View.VISIBLE
-            } else {
-                btnFilterInactivo.visibility = View.GONE
+    private fun setupUserObserver() {
+        userViewModel.userData.observe(viewLifecycleOwner) { user ->
+            if (user != null) {
+                userRole = user.rol ?: ""
+                if (userRole == "gerente") {
+                    btnFilterInactivo.visibility = View.VISIBLE
+                } else {
+                    btnFilterInactivo.visibility = View.GONE
+                }
+                applyFilter() // Re-aplicar el filtro de choferes basado en el nuevo rol
             }
+        }
+        
+        // Asegurarse de que los datos estén cargados (aunque MainActivity lo hace)
+        val uid = auth.currentUser?.uid
+        if (uid != null) {
+            userViewModel.loadUser(uid)
         }
     }
 
@@ -145,7 +157,7 @@ class ControlDespachadorFragment : Fragment() {
                 "fechaCompletado", Timestamp.now()
             )
             .addOnSuccessListener {
-                Toast.makeText(context, "Instrucción marcada como hecha", Toast.LENGTH_SHORT).show()
+                if (isAdded) Toast.makeText(context, "Instrucción marcada como hecha", Toast.LENGTH_SHORT).show()
             }
     }
 

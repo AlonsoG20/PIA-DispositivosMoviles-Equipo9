@@ -11,7 +11,8 @@ data class User(
     val telefono: String? = null,
     val rol: String? = null,
     val activo: Boolean? = null,
-    val estado: String? = "0" // "0" = Disponible, "1" = Ocupado
+    val estado: String? = "0", // "0" = Disponible, "1" = Ocupado
+    val unidad: String? = null
 ) {
     val nombreCompleto: String get() = "${nombre ?: ""} ${apellidos ?: ""}".trim().ifEmpty { "Sin nombre" }
     val emailSeguro: String get() = email ?: "Sin correo"

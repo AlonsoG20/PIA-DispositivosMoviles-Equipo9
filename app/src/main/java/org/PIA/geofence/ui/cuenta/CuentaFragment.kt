@@ -4,10 +4,10 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
-import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import com.google.android.material.chip.Chip
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -19,6 +19,7 @@ class CuentaFragment : Fragment(R.layout.fragment_cuenta) {
 
     private lateinit var auth: FirebaseAuth
     private lateinit var db: FirebaseFirestore
+    private val userViewModel: UserViewModel by activityViewModels()
 
     private lateinit var tvDriverName: TextView
     private lateinit var tvUserEmail: TextView
@@ -45,59 +46,68 @@ class CuentaFragment : Fragment(R.layout.fragment_cuenta) {
 
         btnLogout.setOnClickListener {
             auth.signOut()
+            userViewModel.clear()
             val intent = Intent(requireContext(), LoginActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             startActivity(intent)
         }
 
-        // Mostrar email desde Auth
+        // Mostrar email desde Auth (siempre disponible)
         tvUserEmail.text = auth.currentUser?.email ?: "Sin correo"
 
-        loadUserData()
+        setupObservers()
+        
+        // Cargar datos si no están cargados (aunque MainActivity ya debería haberlo hecho)
+        val userId = auth.currentUser?.uid
+        if (userId != null) {
+            userViewModel.loadUser(userId)
+        }
     }
 
-    private fun loadUserData() {
-        val userId = auth.currentUser?.uid ?: return
+    private fun setupObservers() {
+        userViewModel.userData.observe(viewLifecycleOwner) { user ->
+            if (user != null) {
+                val nombreCompleto = user.nombreCompleto
+                tvDriverName.text = if (nombreCompleto.isNotEmpty() && nombreCompleto != "Sin nombre") {
+                    nombreCompleto
+                } else {
+                    "Usuario"
+                }
+                
+                val rol = user.rol ?: ""
+                chipUserRole.text = rol.uppercase()
 
-        db.collection("usuarios").document(userId).get()
-            .addOnSuccessListener { document ->
-                if (document != null && document.exists()) {
-                    val nombre = document.getString("nombre") ?: ""
-                    val apellidos = document.getString("apellidos") ?: ""
-                    val rol = document.getString("rol") ?: ""
-                    val nombreCompleto = "$nombre $apellidos".trim()
+                // Cambiar color del chip según el rol
+                when(rol.lowercase()) {
+                    "gerente" -> chipUserRole.setChipBackgroundColorResource(android.R.color.holo_purple)
+                    "despachador" -> chipUserRole.setChipBackgroundColorResource(android.R.color.holo_orange_dark)
+                    "chofer" -> chipUserRole.setChipBackgroundColorResource(R.color.teal_primary)
+                }
 
-                    tvDriverName.text = if (nombreCompleto.isNotEmpty()) nombreCompleto else "Usuario"
-                    chipUserRole.text = rol.uppercase()
+                if (rol.equals("chofer", ignoreCase = true)) {
+                    tvAssignedUnit.visibility = View.VISIBLE
+                    cardStats.visibility = View.VISIBLE
 
-                    // Cambiar color del chip según el rol
-                    when(rol.lowercase()) {
-                        "gerente" -> chipUserRole.setChipBackgroundColorResource(android.R.color.holo_purple)
-                        "despachador" -> chipUserRole.setChipBackgroundColorResource(android.R.color.holo_orange_dark)
-                        "chofer" -> chipUserRole.setChipBackgroundColorResource(R.color.teal_primary)
-                    }
+                    val unidad = user.unidad
+                    tvAssignedUnit.text = "Unidad asignada: ${unidad ?: "Sin unidad"}"
 
-                    if (rol.equals("chofer", ignoreCase = true)) {
-                        tvAssignedUnit.visibility = View.VISIBLE
-                        cardStats.visibility = View.VISIBLE
-
-                        val unidad = document.getString("unidad")
-                        tvAssignedUnit.text = "Unidad asignada: ${unidad ?: "Sin unidad"}"
-
-                        if (nombreCompleto.isNotEmpty()) {
-                            setupCompletedRoutesListener(nombreCompleto)
-                        } else {
-                            tvCompletedRoutes.text = "Total de rutas realizadas: 0"
-                        }
+                    if (nombreCompleto.isNotEmpty() && nombreCompleto != "Sin nombre") {
+                        setupCompletedRoutesListener(nombreCompleto)
                     } else {
-                        tvAssignedUnit.visibility = View.GONE
-                        cardStats.visibility = View.GONE
+                        tvCompletedRoutes.text = "Total de rutas realizadas: 0"
                     }
+                } else {
+                    tvAssignedUnit.visibility = View.GONE
+                    cardStats.visibility = View.GONE
                 }
             }
-            .addOnFailureListener { e ->
-                if (isAdded) Toast.makeText(requireContext(), "Error al cargar datos: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+
+        userViewModel.error.observe(viewLifecycleOwner) { error ->
+            if (error != null && isAdded) {
+                Toast.makeText(requireContext(), "Error: $error", Toast.LENGTH_SHORT).show()
             }
+        }
     }
 
     private fun setupCompletedRoutesListener(driverName: String) {
