@@ -69,15 +69,40 @@
             app:layout_constraintTop_toBottomOf="@id/tvInstruccionRemitente" />
 
         <TextView
+            android:id="@+id/tvInstruccionDestinatario"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Para: Despachador"
+            android:textSize="11sp"
+            android:textColor="@color/gray_hint"
+            android:visibility="gone"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvInstruccionMensaje" />
+
+        <TextView
             android:id="@+id/tvInstruccionFecha"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
-            android:text="12/10 10:00"
+            android:text="Creado: 12/10 10:00"
             android:textSize="10sp"
             android:textColor="@color/gray_hint"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tvInstruccionMensaje" />
+            app:layout_constraintTop_toBottomOf="@id/tvInstruccionDestinatario" />
+
+        <TextView
+            android:id="@+id/tvInstruccionModificado"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="Modificado: 12/10 11:00"
+            android:textSize="10sp"
+            android:textColor="@color/gray_hint"
+            android:visibility="gone"
+            app:layout_constraintStart_toEndOf="@id/tvInstruccionFecha"
+            app:layout_constraintTop_toTopOf="@id/tvInstruccionFecha" />
 
         <LinearLayout
             android:id="@+id/layoutAcciones"

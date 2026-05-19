@@ -25,6 +25,8 @@ class InstruccionAdapter(
         val tvFecha: TextView = view.findViewById(R.id.tvInstruccionFecha)
         val tvMensaje: TextView = view.findViewById(R.id.tvInstruccionMensaje)
         val tvEstado: TextView = view.findViewById(R.id.tvInstruccionEstado)
+        val tvDestinatario: TextView = view.findViewById(R.id.tvInstruccionDestinatario)
+        val tvModificado: TextView = view.findViewById(R.id.tvInstruccionModificado)
         val btnGuardar: Button = view.findViewById(R.id.btnGuardarInstruccion)
         val btnDescartar: Button = view.findViewById(R.id.btnDescartarInstruccion)
         val btnCompletar: Button = view.findViewById(R.id.btnCompletarInstruccion)
@@ -43,24 +45,33 @@ class InstruccionAdapter(
         val sdf = SimpleDateFormat("dd/MM HH:mm", Locale.getDefault())
 
         holder.tvRemitente.text = "De: ${item.remitenteNombre}"
-        holder.tvFecha.text = item.fechaCreacion?.toDate()?.let { sdf.format(it) } ?: "Sincronizando..."
+        holder.tvFecha.text = "Creado: ${item.fechaCreacion?.toDate()?.let { sdf.format(it) } ?: "Sincronizando..."}"
         holder.tvMensaje.text = item.mensaje
 
+        // Mostrar destinatario si estamos en vista de Gerente
         if (onDeleteClick != null) {
+            holder.tvDestinatario.visibility = View.VISIBLE
+            holder.tvDestinatario.text = "Para: ${item.destinatarioNombre}"
             holder.btnDelete?.visibility = View.VISIBLE
             holder.btnDelete?.setOnClickListener { onDeleteClick.invoke(item) }
         } else {
+            holder.tvDestinatario.visibility = View.GONE
             holder.btnDelete?.visibility = View.GONE
         }
 
-        // Determinar si está bloqueado
+        // Mostrar fecha de primera modificación si existe
+        if (item.primeraModificacion != null) {
+            holder.tvModificado.visibility = View.VISIBLE
+            holder.tvModificado.text = "Modificado: ${sdf.format(item.primeraModificacion.toDate())}"
+        } else {
+            holder.tvModificado.visibility = View.GONE
+        }
+
         val isBloqueado = item.bloqueado == 1
         
         // Configurar botones de acción para el despachador
         if (onActionClick != null) {
             holder.layoutAcciones.visibility = View.VISIBLE
-            
-            // Lógica: No mostrar la opción del estado actual
             holder.btnGuardar.visibility = if (item.estado != "guardada") View.VISIBLE else View.GONE
             holder.btnDescartar.visibility = if (item.estado != "descartada") View.VISIBLE else View.GONE
             holder.btnCompletar.visibility = if (item.estado != "completada") View.VISIBLE else View.GONE
@@ -90,7 +101,6 @@ class InstruccionAdapter(
             holder.layoutAcciones.visibility = View.GONE
         }
 
-        // Mostrar estado actual en el badge
         holder.tvEstado.text = item.estado.uppercase()
         val badgeColor = when (item.estado) {
             "pendiente" -> ContextCompat.getColor(context, R.color.gray_hint)
